@@ -42,7 +42,7 @@ install -m 0644 "$SRC/deploy/nginx-certmgr.conf" "$SRC/deploy/sshd-hardening.con
 install -m 0755 "$SRC/deploy/firewall-ufw.sh" "$PKG/usr/share/certmgr/"
 
 # Documentation
-install -m 0644 "$SRC/README.md" "$SRC/packaging/debian/copyright" "$PKG/usr/share/doc/certmgr/"
+install -m 0644 "$SRC/README.md" "$SRC/LICENSE" "$SRC/packaging/debian/copyright" "$PKG/usr/share/doc/certmgr/"
 gzip -9n < "$SRC/packaging/debian/changelog" > "$PKG/usr/share/doc/certmgr/changelog.Debian.gz"
 gzip -9n < "$SRC/CHANGELOG.md" > "$PKG/usr/share/doc/certmgr/changelog.gz"
 

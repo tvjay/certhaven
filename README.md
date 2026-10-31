@@ -1,7 +1,7 @@
 # certmgr
 
 [![Tests](https://github.com/tvjay/certmgr/actions/workflows/ci.yml/badge.svg)](https://github.com/tvjay/certmgr/actions/workflows/ci.yml)
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE)
 
 **A self-hosted private certificate authority with a web UI.** certmgr builds a CA hierarchy, issues and signs
 certificates, revokes them and publishes CRLs, all from a small web app on a Debian server, so a team shares one
@@ -87,7 +87,7 @@ Download the `.deb` and its checksum from the [latest release](https://github.co
 check it, and install it (apt pulls in the dependencies):
 
 ```bash
-VERSION=0.9.4   # the latest release
+VERSION=0.9.5   # the latest release
 wget https://github.com/tvjay/certmgr/releases/download/v$VERSION/certmgr_${VERSION}-1_all.deb{,.sha256}
 sha256sum -c certmgr_${VERSION}-1_all.deb.sha256
 sudo apt install ./certmgr_${VERSION}-1_all.deb
@@ -227,7 +227,12 @@ certmgr holds the keys to your CA, so please report vulnerabilities privately, a
 
 ## License
 
-certmgr is free software under the [GNU General Public License v3.0 or later](LICENSE).
+certmgr is free software under the [GNU Affero General Public License v3.0 or later](LICENSE) (AGPL).
+
+The AGPL keeps certmgr open wherever it runs: if you modify it and let other people use your version over a
+network, you must offer them its source code. Every page links to the source (the **Source code** link at the
+bottom). If you run a modified version, point that link at your own code by changing `SOURCE_URL` in
+`certmgr/__init__.py`. Using certmgr unmodified carries no extra obligations.
 
 Built with [Flask](https://flask.palletsprojects.com/), [SQLAlchemy](https://www.sqlalchemy.org/) and
 [cryptography](https://cryptography.io/).

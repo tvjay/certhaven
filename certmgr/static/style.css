@@ -144,3 +144,5 @@ ol.chain { margin: 0; padding-left: 1.25rem; }
 
 pre { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: .75rem; overflow-x: auto; font-size: .8rem; }
 details summary { cursor: pointer; color: var(--accent); }
+
+.site-footer { max-width: 1200px; margin: 0 auto; padding: 0 1.25rem 2rem; font-size: .8rem; color: var(--muted); text-align: center; }

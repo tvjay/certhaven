@@ -1,3 +1,10 @@
+certmgr (0.9.5-1) trixie; urgency=medium
+
+  * License changed to the GNU AGPL v3.0 or later.
+  * Every page links to the source code; About shows the license.
+
+ -- tvjay <11197859+tvjay@users.noreply.github.com>  Fri, 30 Oct 2026 23:44:06 -0400
+
 certmgr (0.9.4-1) trixie; urgency=medium
 
   * First public release, under the GNU GPL v3.0 or later.

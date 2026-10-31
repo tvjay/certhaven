@@ -8,7 +8,12 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .models import db, upgrade_schema
 
-__version__ = "0.9.4"
+__version__ = "0.9.5"
+
+# Where users of this instance can get its source code, linked from every page. certmgr is licensed under
+# the AGPL: if you run a modified version for others, point this at the source of your version.
+SOURCE_URL = "https://github.com/tvjay/certmgr"
+LICENSE_NAME = "AGPL-3.0-or-later"
 
 
 def build_date():
@@ -69,6 +74,7 @@ def create_app(config=None):
     notify.register_cli(app)
     for module in (auth, account, users, main, certs, csrs, keys, templates, importer, public):
         app.register_blueprint(module.bp)
+    app.jinja_env.globals.update(source_url=SOURCE_URL, license_name=LICENSE_NAME)
 
     # Times are stored and rendered in UTC. The <time> element carries the exact instant, so
     # app.js can rewrite it in the browser's time zone for users who chose local time.

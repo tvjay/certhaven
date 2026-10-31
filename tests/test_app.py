@@ -356,3 +356,15 @@ def test_settings_about_shows_version_and_build_date(client, monkeypatch, tmp_pa
     page = client.get("/settings").data.decode()
     assert '<time datetime="2026-10-31T03:00:00Z" data-kind="datetime">2026-10-31 03:00 UTC</time>' in page
     assert "development build" not in page
+
+
+def test_every_page_links_to_the_source(client):
+    # AGPL section 13: users interacting with the app over a network are offered its source.
+    login = client.get("/login", follow_redirects=True).data.decode()
+    assert f'<a href="{certmgr.SOURCE_URL}" rel="noopener">Source code</a>' in login
+    assert certmgr.LICENSE_NAME in login
+    client.setup()
+    for url in ("/", "/certs", "/account"):
+        assert f'href="{certmgr.SOURCE_URL}"' in client.get(url).data.decode(), url
+    about = client.get("/settings").data.decode()
+    assert f"<dt>License</dt><dd>{certmgr.LICENSE_NAME}</dd>" in about

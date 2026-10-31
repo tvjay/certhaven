@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.9.5 — 2026-10-30
+
+- **License changed to the GNU Affero General Public License v3.0 or later** (AGPL), so certmgr stays open
+  wherever it runs: anyone who lets others use a modified version over a network must offer them its source.
+  0.9.4 was released under the GPL; earlier releases have been withdrawn and 0.9.5 is the version to use.
+- Every page links to the source code, and Settings → About shows the license and source location. If you run
+  a modified version, change `SOURCE_URL` in `certmgr/__init__.py` to point at your code.
+- The package installs the full license text with its documentation.
+
 ## 0.9.4 — 2026-10-30
 
 - **First public release**, on GitHub: https://github.com/tvjay/certmgr
