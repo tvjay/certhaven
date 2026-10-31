@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% set active = "unlock" %}
+{% block title %}Unlock keys{% endblock %}
+{% block content %}
+<div class="card narrow-card">
+  <h1>Unlock private keys</h1>
+  <p class="muted">The keys were locked by a restart, the idle timeout, or someone pressing Lock. Enter your password
+    to unlock them for everyone again.</p>
+  <form method="post">
+    {{ csrf_field() }}
+    <input type="hidden" name="next" value="{{ next }}">
+    <label>Password for {{ current_user.username }}
+      <input type="password" name="password" required autofocus autocomplete="current-password"></label>
+    <button class="btn primary">Unlock</button>
+  </form>
+</div>
+{% endblock %}

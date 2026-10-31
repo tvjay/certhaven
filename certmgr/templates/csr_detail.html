@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% set active = "csrs" %}
+{% block title %}{{ row.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>CSR: {{ row.name }}</h1>
+  <div class="actions">
+    <a class="btn" href="{{ url_for('csrs.download_csr', id=row.id) }}">Download</a>
+    {% if can('admin') %}<form method="post" action="{{ url_for('csrs.delete', id=row.id) }}" class="inline" data-confirm="Delete this CSR?">{{ csrf_field() }}<button class="btn danger-outline">Delete</button></form>{% endif %}
+  </div>
+</div>
+
+{% if not valid %}<div class="flash error">The CSR signature does not verify. Do not sign it.</div>{% endif %}
+
+<div class="cols">
+<section class="card">
+  <h2>Request</h2>
+  <dl>
+    <dt>Subject</dt><dd class="mono">{{ row.subject or '(empty)' }}</dd>
+    <dt>Public key</dt><dd>{{ public_key }}{% if row.key %} — private key stored here ({{ row.key.name }}){% endif %}</dd>
+    <dt>Requested SANs</dt><dd class="mono small pre">{{ sans_text or '(none)' }}</dd>
+    <dt>Signature</dt><dd>{{ 'valid' if valid else 'INVALID' }}</dd>
+    {% if row.cert %}<dt>Signed as</dt><dd><a href="{{ url_for('certs.detail', id=row.cert.id) }}">{{ row.cert.name }}</a></dd>{% endif %}
+  </dl>
+  <details><summary>PEM</summary><pre>{{ row.pem }}</pre></details>
+</section>
+
+{% if can('operator') %}
+<section class="card">
+  <h2>Sign</h2>
+  {% if issuers %}
+  <form method="post" action="{{ url_for('csrs.sign', id=row.id) }}">
+    {{ csrf_field() }}
+    <label>Issuing CA
+      <select name="issuer">{% for ca in issuers %}<option value="{{ ca.id }}">{{ ca.name }}</option>{% endfor %}</select>
+    </label>
+    <label>Template
+      <select name="template">{% for t in templates %}<option value="{{ t.id }}" {{ 'selected' if t.name == 'TLS Server' }}>{{ t.name }} ({{ t.validity_days }} days)</option>{% endfor %}</select>
+      <small>Key usage, extended key usage and CA flags come from the template; any the CSR requests are ignored.</small>
+    </label>
+    <label>Subject alternative names
+      <textarea name="sans" rows="4" class="mono">{{ sans_text }}</textarea>
+      <small>Pre-filled from the CSR. Edit to add or remove names.</small>
+    </label>
+    <div class="grid">
+      <label>Validity (days) <input type="number" name="days" min="1" placeholder="template default"></label>
+      <label>Display name <input name="name" value="{{ row.name }}"></label>
+    </div>
+    <button class="btn primary" {{ 'disabled' if not valid }}>Sign certificate</button>
+  </form>
+  {% else %}
+    <p>No CA with a private key is available. <a href="{{ url_for('certs.cas') }}">Create a CA first</a>.</p>
+  {% endif %}
+</section>
+{% endif %}
+</div>
+{% endblock %}

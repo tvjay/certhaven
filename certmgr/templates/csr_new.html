@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% from "_macros.html" import subject_inputs, key_select %}
+{% set active = "csrs" %}
+{% block title %}Create CSR{% endblock %}
+{% block content %}
+<h1>Create a CSR</h1>
+<p class="muted">Use this when the certificate will be signed by another CA but the key should live here.</p>
+<form method="post" class="card wide">
+  {{ csrf_field() }}
+  <label>Name <input name="name" value="{{ values.get('name', '') }}" placeholder="Defaults to the common name"></label>
+  <h3>Subject</h3>
+  {{ subject_inputs(subject_fields, values) }}
+  <label>Subject alternative names
+    <textarea name="sans" rows="3">{{ values.get('sans', '') }}</textarea>
+  </label>
+  <h3>Key</h3>
+  {{ key_select(keys, algorithms, values) }}
+  <button class="btn primary">Create CSR</button>
+</form>
+{% endblock %}

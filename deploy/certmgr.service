@@ -1,0 +1,41 @@
+[Unit]
+Description=certmgr private CA web application
+After=network.target
+
+[Service]
+Type=simple
+User=certmgr
+Group=certmgr
+WorkingDirectory=/usr/lib/certmgr
+Environment=CERTMGR_DATA_DIR=/var/lib/certmgr
+# Exactly one worker: the unlocked data key lives in that process's memory.
+ExecStart=/usr/bin/gunicorn --workers 1 --threads 8 --bind 127.0.0.1:8000 \
+    --access-logfile - --forwarded-allow-ips 127.0.0.1 wsgi:app
+Restart=on-failure
+UMask=0077
+# The unlocked data key is in memory: never write it to a core dump, and bound memory use.
+LimitCORE=0
+MemoryMax=1G
+
+StateDirectory=certmgr
+StateDirectoryMode=0700
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=yes
+CapabilityBoundingSet=
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target

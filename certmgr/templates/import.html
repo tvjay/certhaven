@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% set active = "import" %}
+{% block title %}Import{% endblock %}
+{% block content %}
+<h1>Import</h1>
+<p>Bring in existing CAs, certificates, private keys or CSRs: PEM (one or many blocks), DER, or PKCS#12 (.p12/.pfx).
+   Certificates are linked to their issuers and keys automatically, in any order.</p>
+<form method="post" enctype="multipart/form-data" class="card wide">
+  {{ csrf_field() }}
+  <label>Paste PEM <textarea name="text" rows="10" class="mono" placeholder="-----BEGIN CERTIFICATE-----&#10;…&#10;-----BEGIN PRIVATE KEY-----"></textarea></label>
+  <div class="grid">
+    <label>…or upload a file <input type="file" name="file"></label>
+    <label>Password (encrypted key or PKCS#12) <input type="password" name="password" autocomplete="off"></label>
+    <label>Name (optional) <input name="name"></label>
+  </div>
+  <button class="btn primary">Import</button>
+</form>
+{% endblock %}

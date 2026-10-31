@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% set active = "users" %}
+{% block title %}Users{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Users</h1>
+  <div class="actions"><a class="btn primary" href="{{ url_for('users.new') }}">Add user</a></div>
+</div>
+<div class="table-wrap"><table>
+  <thead><tr><th>Username</th><th>Role</th><th>Status</th><th>Last login</th><th>Created</th><th></th></tr></thead>
+  <tbody>
+  {% for u in rows %}
+    <tr>
+      <td><a href="{{ url_for('users.edit', id=u.id) }}">{{ u.username }}</a>{% if u.id == current_user.id %} <span class="muted small">(you)</span>{% endif %}</td>
+      <td>{{ u.role_label }}</td>
+      <td>
+        {% if u.disabled %}<span class="badge revoked">disabled</span>
+        {% elif u.must_change_password %}<span class="badge pending">must change password</span>
+        {% else %}<span class="badge valid">active</span>{% endif %}
+      </td>
+      <td>{{ u.last_login|dt if u.last_login else '—' }}</td>
+      <td>{{ u.created_at|d }}</td>
+      <td>
+        {% if u.id != current_user.id %}
+        <form method="post" action="{{ url_for('users.delete', id=u.id) }}" data-confirm="Delete user {{ u.username }}?">
+          {{ csrf_field() }}<button class="btn small danger-outline">Delete</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+<section class="card">
+  <h2>Roles</h2>
+  <dl>
+    {% for role, text in role_descriptions.items() %}<dt>{{ role|capitalize }}</dt><dd class="small">{{ text }}</dd>{% endfor %}
+  </dl>
+  <p class="small muted">Admins and operators unlock the private keys with their own password. An auditor's password
+    cannot decrypt anything, even with a copy of the database.</p>
+</section>
+{% endblock %}

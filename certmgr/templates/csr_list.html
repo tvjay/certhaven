@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% set active = "csrs" %}
+{% block title %}CSRs{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Certificate signing requests</h1>
+  <div class="actions">{% if can('operator') %}<a class="btn" href="{{ url_for('csrs.new') }}">Create CSR</a>{% endif %}</div>
+</div>
+
+{% if can('operator') %}
+<form method="post" action="{{ url_for('csrs.import_csr') }}" enctype="multipart/form-data" class="card wide">
+  {{ csrf_field() }}
+  <h2>Import a CSR</h2>
+  <label>Paste PEM <textarea name="text" rows="5" class="mono" placeholder="-----BEGIN CERTIFICATE REQUEST-----"></textarea></label>
+  <div class="grid">
+    <label>…or upload a file <input type="file" name="file" accept=".csr,.req,.pem,.der"></label>
+    <label>Name (optional) <input name="name"></label>
+  </div>
+  <button class="btn primary">Import and review</button>
+</form>
+{% endif %}
+
+{% if rows %}
+<div class="table-wrap"><table>
+  <thead><tr><th>Name</th><th>Subject</th><th>Added</th><th>Key</th><th>Status</th></tr></thead>
+  <tbody>
+  {% for r in rows %}
+    <tr>
+      <td><a href="{{ url_for('csrs.detail', id=r.id) }}">{{ r.name }}</a></td>
+      <td class="mono small">{{ r.subject }}</td>
+      <td>{{ r.created_at|d }}</td>
+      <td>{{ '✓' if r.key_id else '' }}</td>
+      <td>{% if r.cert %}<a href="{{ url_for('certs.detail', id=r.cert.id) }}">signed</a>{% else %}<span class="badge pending">unsigned</span>{% endif %}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% endif %}
+{% endblock %}

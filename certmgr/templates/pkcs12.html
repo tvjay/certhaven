@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% set active = "certs" %}
+{% block title %}PKCS#12 export{% endblock %}
+{% block content %}
+<h1>Export {{ row.name }} as PKCS#12</h1>
+<form method="post" class="card">
+  {{ csrf_field() }}
+  <p>The file contains the certificate and its <strong>private key</strong>.</p>
+  <label>Password <input type="password" name="password" autocomplete="new-password"></label>
+  <label>Confirm password <input type="password" name="confirm" autocomplete="new-password"></label>
+  <small>Encrypted with AES-256 / PBKDF2-SHA256.</small>
+  <label class="check"><input type="checkbox" name="chain" value="1" checked> Include the CA chain</label>
+  <label class="check"><input type="checkbox" name="unencrypted" value="1"> Export without a password (not recommended)</label>
+  <button class="btn primary">Download .p12</button>
+  <a class="btn" href="{{ url_for('certs.detail', id=row.id) }}">Cancel</a>
+</form>
+{% endblock %}

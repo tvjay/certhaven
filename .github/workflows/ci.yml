@@ -1,0 +1,84 @@
+# Tests on every push and pull request; the Debian package is built each time, and a version tag (v1.2.3)
+# publishes it as a GitHub release.
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        python: ["3.11", "3.13"]   # Debian 12 and Debian 13
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: pip install -r requirements-dev.txt
+      - run: pytest -q
+
+  package:
+    needs: test
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the Debian package
+        run: bash packaging/build-deb.sh dist
+      - name: Checksum
+        working-directory: dist
+        run: for f in *.deb; do sha256sum "$f" > "$f.sha256"; cat "$f.sha256"; done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: certmgr-deb
+          path: dist/
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: package
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: certmgr-deb
+          path: dist
+      - name: Check the tag matches the version in the code
+        run: |
+          code=$(python3 -c 'import re; print(re.search(r"__version__ = \"([^\"]+)\"", open("certmgr/__init__.py").read()).group(1))')
+          test "${GITHUB_REF_NAME#v}" = "$code" || { echo "Tag $GITHUB_REF_NAME does not match __version__ $code"; exit 1; }
+      - name: Release notes from the changelog
+        run: |
+          python3 - "${GITHUB_REF_NAME#v}" > notes.md <<'EOF'
+          import re, sys
+          version = sys.argv[1]
+          sections = re.split(r"(?m)^## ", open("CHANGELOG.md", encoding="utf-8").read())
+          body = next(s for s in sections if s.startswith(version + " "))
+          print(body.split("\n", 1)[1].strip())
+          print(f"""
+          ## Install
+
+          On Debian 13 (trixie):
+
+          ```bash
+          wget https://github.com/${{ github.repository }}/releases/download/v{version}/certmgr_{version}-1_all.deb{{,.sha256}}
+          sha256sum -c certmgr_{version}-1_all.deb.sha256
+          sudo apt install ./certmgr_{version}-1_all.deb
+          ```
+
+          See the README for first-time setup.""")
+          EOF
+          cat notes.md
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/*.deb dist/*.sha256 --title "certmgr ${GITHUB_REF_NAME#v}" --notes-file notes.md

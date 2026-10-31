@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% set active = "audit" %}
+{% block title %}Audit log{% endblock %}
+{% block content %}
+<h1>Audit log</h1>
+<div class="table-wrap"><table>
+  <thead><tr><th>Time</th><th>User</th><th>Action</th><th>Detail</th><th>IP</th></tr></thead>
+  <tbody>
+  {% for a in rows.items %}
+    <tr><td class="nowrap">{{ a.ts|dt }}</td><td>{{ a.username or '—' }}</td><td>{{ a.action }}</td><td>{{ a.detail }}</td><td class="mono small">{{ a.ip or '' }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+<p class="buttons">
+  {% if rows.has_prev %}<a class="btn" href="{{ url_for('main.audit', page=rows.prev_num) }}">← Newer</a>{% endif %}
+  {% if rows.has_next %}<a class="btn" href="{{ url_for('main.audit', page=rows.next_num) }}">Older →</a>{% endif %}
+</p>
+{% endblock %}

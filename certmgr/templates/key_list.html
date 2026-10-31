@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% set active = "keys" %}
+{% block title %}Keys{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Private keys</h1>
+  <div class="actions">
+    {% if can('operator') %}
+    <form method="post" action="{{ url_for('keys.new') }}" class="inline">
+      {{ csrf_field() }}
+      <input name="name" placeholder="New key name" aria-label="New key name">
+      <select name="algo" aria-label="Algorithm">{% for v, l in algorithms.items() %}<option value="{{ v }}" {{ 'selected' if v == 'ec256' }}>{{ l }}</option>{% endfor %}</select>
+      <button class="btn primary">Generate key</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+<form class="filters" method="get">
+  <input name="q" value="{{ q }}" placeholder="Search name or fingerprint">
+  <select name="algo">
+    <option value="">All types</option>
+    {% for a in key_types %}<option {{ 'selected' if algo == a }}>{{ a }}</option>{% endfor %}
+  </select>
+  <select name="usage">
+    <option value="">Any usage</option>
+    <option value="used" {{ 'selected' if usage == 'used' }}>Used</option>
+    <option value="unused" {{ 'selected' if usage == 'unused' }}>Unused</option>
+  </select>
+  <button class="btn">Filter</button>
+</form>
+
+{% if rows %}
+<div class="table-wrap"><table>
+  <thead><tr><th>Name</th><th>Type</th><th>Used by</th><th>Created</th><th>Export</th>{% if can('admin') %}<th></th>{% endif %}</tr></thead>
+  <tbody>
+  {% for k in rows %}
+    <tr id="key-{{ k.id }}">
+      <td>
+        {% if can('admin') %}
+        <form method="post" action="{{ url_for('keys.rename', id=k.id) }}" class="inline">
+          {{ csrf_field() }}<input name="name" value="{{ k.name }}" class="bare" aria-label="Key name"><button class="btn small">Rename</button>
+        </form>
+        {% else %}{{ k.name }}{% endif %}
+        <div class="mono tiny muted" title="SHA-256 of the public key">{{ k.fingerprint[:32] }}…</div>
+      </td>
+      <td>{{ k.algo }}</td>
+      <td>
+        {% for c in k.certificates %}<a href="{{ url_for('certs.detail', id=c.id) }}">{{ c.name }}</a>{{ ', ' if not loop.last }}{% endfor %}
+        {% for r in k.csrs %}{% if loop.first and k.certificates %}, {% endif %}<a href="{{ url_for('csrs.detail', id=r.id) }}">CSR {{ r.name }}</a>{{ ', ' if not loop.last }}{% endfor %}
+        {% if not k.certificates and not k.csrs %}<span class="muted">unused</span>{% endif %}
+      </td>
+      <td>{{ k.created_at|d }}</td>
+      <td>
+        {% if can('admin') %}
+        <details>
+          <summary>Export…</summary>
+          <form method="post" action="{{ url_for('keys.export', id=k.id) }}">
+            {{ csrf_field() }}
+            <input type="password" name="password" placeholder="Password" autocomplete="new-password">
+            <input type="password" name="confirm" placeholder="Confirm" autocomplete="new-password">
+            <label class="check small"><input type="checkbox" name="unencrypted" value="1"> Export without a password</label>
+            <button class="btn small">Download PEM</button>
+          </form>
+          <a class="small" href="{{ url_for('keys.public', id=k.id) }}">Public key only</a>
+        </details>
+        {% else %}
+          <a class="small" href="{{ url_for('keys.public', id=k.id) }}">Public key</a>
+        {% endif %}
+      </td>
+      {% if can('admin') %}
+      <td>
+        {% if not k.certificates and not k.csrs %}
+        <form method="post" action="{{ url_for('keys.delete', id=k.id) }}" data-confirm="Permanently delete this private key?">{{ csrf_field() }}<button class="btn small danger-outline">Delete</button></form>
+        {% endif %}
+      </td>
+      {% endif %}
+    </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% else %}
+  <p class="muted">{{ 'No keys match.' if filtered else 'No keys yet.' }}</p>
+{% endif %}
+{% endblock %}

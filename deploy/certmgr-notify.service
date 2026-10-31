@@ -1,0 +1,28 @@
+[Unit]
+Description=certmgr email alerts (expiry, CRLs, failed logins)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=certmgr
+Group=certmgr
+WorkingDirectory=/usr/lib/certmgr
+Environment=CERTMGR_DATA_DIR=/var/lib/certmgr
+ExecStart=/usr/bin/flask --app wsgi notify
+UMask=0077
+LimitCORE=0
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/certmgr
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LockPersonality=yes
+CapabilityBoundingSet=

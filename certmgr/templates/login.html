@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Log in{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>certmgr</h1>
+  <form method="post">
+    {{ csrf_field() }}
+    <input type="hidden" name="next" value="{{ next or '' }}">
+    <label>Username <input name="username" required autofocus autocomplete="username" autocapitalize="none"></label>
+    <label>Password <input type="password" name="password" required autocomplete="current-password"></label>
+    <button class="btn primary">Log in</button>
+  </form>
+</div>
+{% endblock %}

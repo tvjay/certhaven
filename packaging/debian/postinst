@@ -1,0 +1,74 @@
+#!/bin/sh
+# certmgr postinst: user, data directory, TLS, nginx site, services.
+# Never overwrites data, TLS files or an nginx site the admin may have edited.
+set -e
+
+APP=/usr/lib/certmgr
+TLS_DIR=/etc/certmgr/tls
+SITE=/etc/nginx/sites-available/certmgr
+
+make_temporary_tls() {
+    [ -f "$TLS_DIR/server.crt" ] && return 0
+    install -d -m 0755 "$TLS_DIR"
+    fqdn=$(hostname -f 2>/dev/null || hostname)
+    openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:P-256 -nodes -days 30 \
+        -subj "/CN=$fqdn" -addext "subjectAltName=DNS:$fqdn" \
+        -keyout "$TLS_DIR/server.key" -out "$TLS_DIR/server.crt" 2>/dev/null
+    chmod 0600 "$TLS_DIR/server.key"
+    echo "certmgr: created a temporary 30-day self-signed certificate for the admin UI."
+}
+
+install_nginx_site() {
+    if [ ! -e "$SITE" ]; then
+        cp /usr/share/certmgr/nginx-certmgr.conf "$SITE"
+        if [ ! -e /proc/net/if_inet6 ]; then
+            sed -i '/listen \[::\]/d' "$SITE"   # IPv6 disabled on this host
+        fi
+    fi
+    if [ ! -e /etc/nginx/sites-enabled/certmgr ]; then
+        ln -s "$SITE" /etc/nginx/sites-enabled/certmgr
+        # The stock site also claims default_server on ports 80/443.
+        if [ -L /etc/nginx/sites-enabled/default ]; then
+            rm -f /etc/nginx/sites-enabled/default
+            echo "certmgr: disabled the nginx default site (it conflicts with certmgr's)."
+        fi
+    fi
+}
+
+case "$1" in
+    configure)
+        if ! getent passwd certmgr >/dev/null; then
+            adduser --system --group --home /var/lib/certmgr --no-create-home \
+                    --shell /usr/sbin/nologin --quiet certmgr
+        fi
+        install -d -o certmgr -g certmgr -m 0700 /var/lib/certmgr
+        make_temporary_tls
+        install_nginx_site
+        python3 -m compileall -q "$APP/certmgr" >/dev/null || true
+
+        if [ -d /run/systemd/system ]; then
+            systemctl daemon-reload
+            systemctl enable --quiet certmgr.service certmgr-notify.timer certmgr-backup.timer
+            # Restart, not start: on an upgrade the old code is still running.
+            if systemctl is-active --quiet certmgr.service; then
+                systemctl restart certmgr.service
+                echo "certmgr: restarted; the private keys are locked until an admin or operator logs in."
+            else
+                systemctl start certmgr.service
+            fi
+            systemctl start certmgr-notify.timer certmgr-backup.timer
+            if nginx -t >/dev/null 2>&1; then
+                systemctl reload-or-restart nginx
+            else
+                echo "certmgr: nginx configuration test failed; run 'nginx -t' to see why." >&2
+            fi
+        fi
+
+        if [ ! -s /var/lib/certmgr/certmgr.db ]; then
+            fqdn=$(hostname -f 2>/dev/null || hostname)
+            echo "certmgr: open https://$fqdn/ to create the first admin account."
+        fi
+        ;;
+esac
+
+exit 0

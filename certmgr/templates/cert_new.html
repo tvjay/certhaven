@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% from "_macros.html" import subject_inputs, key_select %}
+{% set active = "certs" if issuer_value else "cas" %}
+{% block title %}Issue certificate{% endblock %}
+{% block content %}
+<h1>{{ "Issue certificate" if issuer_value else "New self-signed certificate" }}</h1>
+<form method="post" class="card wide">
+  {{ csrf_field() }}
+  <div class="grid">
+    <label>Issuer
+      <select name="issuer" data-reload>
+        {% if can('admin') %}<option value="" {{ 'selected' if not issuer_value }}>— Self-signed (new root CA) —</option>{% endif %}
+        {% for ca in issuers %}
+          <option value="{{ ca.id }}" {{ 'selected' if issuer_value == ca.id|string }}>{{ ca.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Template
+      <select name="template" data-reload>
+        {% for t in templates %}
+          <option value="{{ t.id }}" {{ 'selected' if t.id == template.id }}>{{ t.name }}</option>
+        {% endfor %}
+      </select>
+      <small>{{ 'CA' if template.is_ca else 'End-entity' }}; {{ template.key_usage_list|join(', ') or 'no key usage' }}{% if template.eku_list %}; {{ template.eku_list|join(', ') }}{% endif %}; {{ template.validity_days }} days.
+        Changing issuer or template reloads the form.</small>
+    </label>
+  </div>
+
+  <label>Display name <input name="name" value="{{ values.get('name', '') }}" placeholder="Defaults to the common name"></label>
+
+  <h3>Subject</h3>
+  {{ subject_inputs(subject_fields, values) }}
+
+  <label>Subject alternative names
+    <textarea name="sans" rows="3" placeholder="www.example.internal&#10;10.0.0.5&#10;DNS:*.apps.example.internal">{{ values.get('sans', '') }}</textarea>
+    <small>One per line. Prefixes DNS:, IP:, email:, URI: are optional. TLS clients check SANs, not the common name, so include every hostname.</small>
+  </label>
+
+  <div class="grid">
+    <label>Validity (days) <input type="number" name="days" min="1" value="{{ values.get('days', '') }}" placeholder="{{ template.validity_days }}"></label>
+  </div>
+
+  <h3>Key</h3>
+  {{ key_select(keys, algorithms, values) }}
+
+  <button class="btn primary">{{ "Issue" if issuer_value else "Create" }}</button>
+</form>
+{% endblock %}

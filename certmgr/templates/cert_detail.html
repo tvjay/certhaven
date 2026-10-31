@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status, cert_table %}
+{% set active = "cas" if row.is_ca else "certs" %}
+{# Renewing or revoking a CA is admin-only; other certificates need an operator. #}
+{% set manage = can('admin') if row.is_ca else can('operator') %}
+{% block title %}{{ row.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>{{ row.name }} {% if row.is_ca %}<span class="tag">CA</span>{% endif %} {{ status(row) }}</h1>
+  <div class="actions">
+    {% if can('operator') and row.is_ca and row.key_id and row.status == 'valid' %}
+      <a class="btn primary" href="{{ url_for('certs.new', issuer=row.id) }}">Issue under this CA</a>
+    {% endif %}
+  </div>
+</div>
+
+{% if row.revoked_at %}
+  <div class="flash error">Revoked {{ row.revoked_at|dt }} ({{ reasons.get(row.revocation_reason, row.revocation_reason) }}).</div>
+{% endif %}
+
+<div class="cols">
+<section class="card">
+  <h2>Details</h2>
+  <dl>
+    <dt>Subject</dt><dd class="mono">{{ info.subject or '(empty)' }}</dd>
+    <dt>Issuer</dt><dd class="mono">{{ info.issuer }}
+      {% if row.self_signed %}<span class="muted">(self-signed)</span>
+      {% elif row.issuer %}<a href="{{ url_for('certs.detail', id=row.issuer.id) }}">{{ row.issuer.name }}</a>
+      {% else %}<span class="muted">(issuer not in database)</span>{% endif %}</dd>
+    <dt>Serial</dt><dd class="mono small">{{ info.serial }}</dd>
+    <dt>Valid from</dt><dd>{{ info.not_before|dt }}</dd>
+    <dt>Valid until</dt><dd>{{ info.not_after|dt }}{% if row.status == 'valid' %} <span class="muted">({{ row.days_left }} days left)</span>{% endif %}</dd>
+    <dt>Public key</dt><dd>{{ info.public_key }}
+      {% if row.key %}— private key: <a href="{{ url_for('keys.index') }}#key-{{ row.key.id }}">{{ row.key.name }}</a>
+      {% else %}<span class="muted">— private key not in database</span>{% endif %}</dd>
+    <dt>Signature</dt><dd>{{ info.signature_algorithm }}</dd>
+    <dt>SHA-256</dt><dd class="mono small">{{ info.sha256 }}</dd>
+    <dt>SHA-1</dt><dd class="mono small">{{ info.sha1 }}</dd>
+  </dl>
+  <h3>Extensions</h3>
+  <dl>
+    {% for name, critical, text in info.extensions %}
+      <dt>{{ name }}{% if critical %} <span class="tag">critical</span>{% endif %}</dt><dd class="small">{{ text }}</dd>
+    {% endfor %}
+  </dl>
+  {% if chain %}
+    <h3>Chain</h3>
+    <ol class="chain">
+      <li>{{ row.name }}</li>
+      {% for c in chain %}<li><a href="{{ url_for('certs.detail', id=c.id) }}">{{ c.name }}</a> {{ status(c) }}</li>{% endfor %}
+    </ol>
+  {% endif %}
+</section>
+
+<div>
+<section class="card">
+  <h2>Export</h2>
+  <p class="buttons">
+    <a class="btn" href="{{ url_for('certs.download_cert', id=row.id, fmt='pem') }}">PEM</a>
+    <a class="btn" href="{{ url_for('certs.download_cert', id=row.id, fmt='der') }}">DER</a>
+    {% if chain %}<a class="btn" href="{{ url_for('certs.download_cert', id=row.id, fmt='chain') }}">Full chain PEM</a>{% endif %}
+    {% if row.key and can('admin') %}<a class="btn" href="{{ url_for('certs.pkcs12', id=row.id) }}">PKCS#12</a>{% endif %}
+  </p>
+  {% if row.key %}<p class="small muted">{% if can('admin') %}The private key is exported from <a href="{{ url_for('keys.index') }}#key-{{ row.key.id }}">Keys</a>.{% else %}Only admins can export the private key or a PKCS#12 file.{% endif %}</p>{% endif %}
+</section>
+
+{% if row.is_ca %}
+<section class="card">
+  <h2>Revocation list</h2>
+  {% set crl = row.latest_crl %}
+  {% if crl %}
+    <p>CRL #{{ crl.number }} · signed {{ crl.this_update|dt }}<br>next update {{ crl.next_update|dt }}</p>
+    <p class="buttons"><a class="btn" href="{{ url_for('certs.download_crl', id=row.id) }}">Download CRL (PEM)</a></p>
+  {% else %}
+    <p class="muted">No CRL yet.</p>
+  {% endif %}
+  {% if row.key_id and can('operator') %}
+    <form method="post" action="{{ url_for('certs.regenerate_crl', id=row.id) }}">{{ csrf_field() }}<button class="btn">Re-sign CRL now</button></form>
+  {% endif %}
+  <p class="small">Public URLs (no login needed):<br>
+    <a class="mono" href="{{ url_for('public.crl', ca_id=row.id) }}">{{ crl_url or url_for('public.crl', ca_id=row.id) }}</a><br>
+    <a class="mono" href="{{ url_for('public.ca_cert', ca_id=row.id) }}">{{ aia_url or url_for('public.ca_cert', ca_id=row.id) }}</a></p>
+</section>
+{% endif %}
+
+{% if manage %}
+<section class="card">
+  <h2>Actions</h2>
+  {% if row.self_signed and row.key or row.issuer and row.issuer.key %}
+  <form method="post" action="{{ url_for('certs.renew', id=row.id) }}" data-confirm="Issue a new certificate with the same key, subject and extensions?">
+    {{ csrf_field() }}<button class="btn">Renew (same key)</button>
+  </form>
+  {% endif %}
+  {% if not row.revoked_at and not row.self_signed %}
+  <form method="post" action="{{ url_for('certs.revoke', id=row.id) }}" class="inline" data-confirm="Revoke this certificate? This cannot be undone.">
+    {{ csrf_field() }}
+    <select name="reason">{% for value, label in reasons.items() %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select>
+    <button class="btn danger">Revoke</button>
+  </form>
+  {% endif %}
+  {% if can('admin') %}
+  <form method="post" action="{{ url_for('certs.delete', id=row.id) }}" data-confirm="Delete this certificate from the database? Prefer revoking certificates that were deployed.">
+    {{ csrf_field() }}<button class="btn danger-outline">Delete</button>
+  </form>
+  {% endif %}
+</section>
+{% endif %}
+</div>
+</div>
+
+{% if row.is_ca %}
+<section>
+  <h2>Issued by this CA</h2>
+  {{ cert_table(row.sorted_children, show_issuer=false) }}
+</section>
+{% endif %}
+
+<details>
+  <summary>PEM</summary>
+  <pre>{{ row.pem }}</pre>
+</details>
+{% endblock %}

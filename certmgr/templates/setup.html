@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Setup{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>Set up certmgr</h1>
+  <p>Create the first admin account. Its password logs you in <strong>and</strong> protects every private key in
+     the database. If every admin and operator loses their password, the keys cannot be recovered, so store it in a
+     password manager. You can add more users afterwards.</p>
+  <form method="post">
+    {{ csrf_field() }}
+    <label>Username <input name="username" value="admin" required autocomplete="username" autocapitalize="none"></label>
+    <label>Password <input type="password" name="password" minlength="{{ min_password }}" required autofocus autocomplete="new-password"></label>
+    <label>Confirm password <input type="password" name="confirm" minlength="{{ min_password }}" required autocomplete="new-password"></label>
+    <label>Public base URL (optional)
+      <input name="base_url" placeholder="http://pki.example.internal">
+      <small>Embedded in issued certificates as the CRL and CA-issuer locations
+        (<code>/crl/&lt;id&gt;.crl</code>, <code>/ca/&lt;id&gt;.crt</code>). You can change it later in Settings.</small>
+    </label>
+    <button class="btn primary">Create</button>
+  </form>
+</div>
+{% endblock %}

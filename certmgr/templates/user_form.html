@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% set active = "users" %}
+{% block title %}{{ 'Edit ' ~ user.username if user else 'Add user' }}{% endblock %}
+{% block content %}
+<h1>{{ 'Edit ' ~ user.username if user else 'Add user' }}</h1>
+<form method="post" class="card wide">
+  {{ csrf_field() }}
+  {% if not user %}
+    <label>Username <input name="username" value="{{ values.get('username', '') }}" required autocomplete="off"
+           pattern="[A-Za-z0-9][A-Za-z0-9._\-]{1,39}"></label>
+  {% endif %}
+  <fieldset>
+    <legend>Role</legend>
+    {% for role in roles %}
+      <label class="check block"><input type="radio" name="role" value="{{ role }}" {{ 'checked' if values.get('role') == role }}>
+        <span><strong>{{ role_labels[role] }}</strong> <span class="small muted">— {{ role_descriptions[role] }}</span></span></label>
+    {% endfor %}
+  </fieldset>
+  {% if user %}
+    <label class="check"><input type="checkbox" name="disabled" value="1" {{ 'checked' if values.get('disabled') }}> Disabled (cannot log in)</label>
+  {% endif %}
+  <h3>{{ 'Reset password' if user else 'Temporary password' }}</h3>
+  <p class="small muted">{{ 'Leave empty to keep the current password. ' if user }}The user must replace a temporary
+    password at their next login. Setting one for an admin or operator needs the private keys unlocked.
+    {% if user and not user.wrapped_key %}Required when giving this user the Operator or Admin role.{% endif %}</p>
+  <div class="grid">
+    <label>Password <input type="password" name="password" minlength="{{ min_password }}" {{ 'required' if not user }} autocomplete="new-password"></label>
+    <label>Confirm <input type="password" name="confirm" minlength="{{ min_password }}" {{ 'required' if not user }} autocomplete="new-password"></label>
+  </div>
+  <button class="btn primary">{{ 'Save' if user else 'Create user' }}</button>
+  <a class="btn" href="{{ url_for('users.index') }}">Cancel</a>
+</form>
+{% endblock %}

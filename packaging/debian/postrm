@@ -1,0 +1,20 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+    remove)
+        # Without the app, the enabled site would only return errors.
+        rm -f /etc/nginx/sites-enabled/certmgr
+        if [ -d /run/systemd/system ]; then
+            systemctl daemon-reload || true
+            systemctl reload nginx 2>/dev/null || true
+        fi
+        ;;
+    purge)
+        rm -f /etc/nginx/sites-available/certmgr /etc/nginx/sites-enabled/certmgr
+        echo "certmgr: kept your CA data and backups. Delete them yourself only if you are sure:"
+        echo "certmgr:   /var/lib/certmgr  /var/backups/certmgr  /etc/certmgr"
+        ;;
+esac
+
+exit 0

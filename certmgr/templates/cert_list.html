@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% from "_macros.html" import cert_table %}
+{% set active = "certs" %}
+{% block title %}Certificates{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Certificates{% if issuer %} issued by {{ issuer.name }}{% endif %}</h1>
+  <div class="actions">{% if can('operator') %}<a class="btn primary" href="{{ url_for('certs.new', issuer=issuer.id if issuer else none) }}">Issue certificate</a>{% endif %}</div>
+</div>
+<form class="filters" method="get">
+  {% if issuer %}<input type="hidden" name="issuer" value="{{ issuer.id }}">{% endif %}
+  <input name="q" value="{{ q }}" placeholder="Search name, subject or serial">
+  <select name="kind">
+    <option value="">All types</option>
+    <option value="ee" {{ 'selected' if kind == 'ee' }}>End-entity</option>
+    <option value="ca" {{ 'selected' if kind == 'ca' }}>CA</option>
+  </select>
+  <select name="status">
+    <option value="">Any status</option>
+    {% for s in ['valid', 'expired', 'revoked', 'pending'] %}<option {{ 'selected' if status == s }}>{{ s }}</option>{% endfor %}
+  </select>
+  <button class="btn">Filter</button>
+</form>
+{{ cert_table(rows) }}
+{% endblock %}

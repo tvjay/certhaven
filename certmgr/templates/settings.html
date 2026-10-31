@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% set active = "settings" %}
+{% block title %}Settings{% endblock %}
+{% block content %}
+<h1>Settings</h1>
+<div class="cols">
+<div>
+<form method="post" class="card">
+  {{ csrf_field() }}
+  <h2>General</h2>
+  <label>Public base URL
+    <input name="base_url" value="{{ base_url }}" placeholder="http://pki.example.internal">
+    <small>Written into new certificates as CRL distribution point and CA issuer URLs. Use plain http — clients
+      fetch CRLs without TLS, and nginx serves only <code>/crl/</code> and <code>/ca/</code> on port 80. Existing
+      certificates keep the URL they were issued with.</small>
+  </label>
+  <label>Auto-lock after idle (minutes) <input type="number" name="idle_timeout" min="5" max="1440" value="{{ idle_timeout }}"></label>
+  <label>CRL validity (days) <input type="number" name="crl_days" min="8" max="365" value="{{ crl_days }}">
+    <small>CRLs expiring within 7 days are re-signed automatically when you log in. Log in at least once per
+      (validity − 7) days or relying parties will see an expired CRL.</small></label>
+  <fieldset>
+    <legend>Show times in</legend>
+    {% for value, label in time_displays.items() %}
+      <label class="check block"><input type="radio" name="time_display" value="{{ value }}"
+        {{ 'checked' if time_display == value }}>
+        <span>{{ label }}{% if value == 'local' %} <span class="small muted" data-local-zone>(each person's browser)</span>{% endif %}</span></label>
+    {% endfor %}
+    <small>Applies to everyone. Only changes how pages show times; certificates, CRLs and email alerts always use
+      UTC. With local time, hover over a time to see it in UTC.</small>
+  </fieldset>
+  <button class="btn primary">Save</button>
+</form>
+
+<section class="card" id="email">
+  <h2>Email alerts</h2>
+  <p class="small muted">Checked every 15 minutes: certificates expiring within 30, 14, 7 and 1 days, CRLs due within
+    7 days or expired, and failed logins. Each warning is sent once.</p>
+  {% if not notify.configured %}
+    <p class="flash warning small">Off. Enter an SMTP server and at least one recipient to turn alerts on.</p>
+  {% endif %}
+  {% set v = notify['values'] %}
+  <form method="post" action="{{ url_for('main.notify_save') }}">
+    {{ csrf_field() }}
+    <div class="grid">
+      <label>SMTP server <input name="smtp_host" value="{{ v.SMTP_HOST }}" placeholder="smtp.example.com" autocomplete="off"></label>
+      <label>Port <input name="smtp_port" value="{{ v.SMTP_PORT }}" inputmode="numeric" placeholder="587"></label>
+    </div>
+    <label>Security
+      <select name="smtp_security">
+        {% for value, label in [('starttls', 'STARTTLS (usually port 587)'), ('ssl', 'SSL/TLS (usually port 465)'), ('none', 'None (local relay only, port 25)')] %}
+          <option value="{{ value }}" {{ 'selected' if (v.SMTP_SECURITY or 'starttls') == value }}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <div class="grid">
+      <label>Username <input name="smtp_user" value="{{ v.SMTP_USER }}" autocomplete="off">
+        <small>Leave empty for a relay that needs no login.</small></label>
+      <div>
+        <label>Password
+          <input type="password" name="smtp_password" autocomplete="new-password"
+                 placeholder="{{ 'Saved — leave blank to keep' if notify.password_set else '' }}">
+          <small>For Gmail or Microsoft 365, use an app password.</small>
+        </label>
+        {% if notify.password_set %}<label class="check small"><input type="checkbox" name="clear_password" value="1"> Remove saved password</label>{% endif %}
+      </div>
+    </div>
+    <div class="grid">
+      <label>From address <input name="mail_from" value="{{ v.MAIL_FROM }}" placeholder="certmgr@example.com"></label>
+      <label>Send alerts to <input name="mail_to" value="{{ v.MAIL_TO }}" placeholder="you@example.com, ops@example.com">
+        <small>Separate several addresses with commas.</small></label>
+    </div>
+    <label>Link in emails (optional) <input name="admin_url" value="{{ v.ADMIN_URL }}" placeholder="https://pki.example.internal/"></label>
+    <p class="small muted">Stored on the server outside the database and its backups, readable only by certmgr. The
+      password is not encrypted, because alerts must be sent while certmgr is locked.</p>
+    <button class="btn primary">Save email settings</button>
+  </form>
+
+  {% if notify.last %}
+    <p class="small">Last check {{ notify.last.time|dt }}: {{ notify.last.alerts }} new alert(s),
+      <strong>{{ notify.last.result }}</strong>.</p>
+  {% endif %}
+  <div class="buttons">
+    <form method="post" action="{{ url_for('main.notify_test') }}">{{ csrf_field() }}<button class="btn" {{ 'disabled' if not notify.configured }}>Send test email</button></form>
+    <form method="post" action="{{ url_for('main.notify_run') }}">{{ csrf_field() }}<button class="btn">Run checks now</button></form>
+  </div>
+</section>
+</div>
+
+<div>
+<section class="card" id="keys">
+  <h2>Private keys</h2>
+  {% if keys_unlocked %}
+    <p>Unlocked. Locking clears the keys from memory <strong>for everyone</strong>; viewing still works, and the next
+      issue, sign or revoke needs someone to unlock them again. The idle timeout and a restart also lock them.</p>
+    <form method="post" action="{{ url_for('auth.lock') }}">
+      {{ csrf_field() }}
+      <button class="btn">Lock keys</button>
+    </form>
+  {% else %}
+    <p>Locked. Issuing, signing and revoking need an unlock.</p>
+    <a class="btn" href="{{ url_for('auth.unlock', next=url_for('main.settings')) }}">Unlock keys</a>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>Users and passwords</h2>
+  <p>Add people and set their roles under <a href="{{ url_for('users.index') }}">Users</a>. Everyone changes their own
+    password under <a href="{{ url_for('account.index') }}">My account</a> (click your name at the top right).</p>
+</section>
+
+<section class="card" id="backup">
+  <h2>Backup</h2>
+  <p>Download a consistent copy of the database: users, private keys (still encrypted), certificates with their
+     names, settings and the audit log. Email settings are not included.</p>
+  <a class="btn" href="{{ url_for('main.backup') }}">Download backup</a>
+
+  <h3>Restore</h3>
+  <p class="small">Replaces <strong>everything</strong> on this server with the backup. The current database is
+    saved on the server first. Everyone is logged out; log in with an account and password from the backup, which
+    also unlocks its private keys. Email settings stay as they are.</p>
+  <form method="post" action="{{ url_for('main.restore') }}" enctype="multipart/form-data"
+        data-confirm="Replace ALL data on this server with the backup? Everyone will be logged out.">
+    {{ csrf_field() }}
+    <label>Backup file <input type="file" name="backup" accept=".db" required></label>
+    <label>Your password <input type="password" name="password" required autocomplete="current-password">
+      <small>Confirms it is you.</small></label>
+    <button class="btn danger">Restore backup</button>
+  </form>
+</section>
+
+<section class="card" id="about">
+  <h2>About</h2>
+  <dl>
+    <dt>Version</dt><dd>certmgr {{ version }}</dd>
+    <dt>Build date</dt><dd>{% if build_date %}{{ build_date|dt }}{% else %}<span class="muted">development build (running from source)</span>{% endif %}</dd>
+  </dl>
+</section>
+</div>
+</div>
+{% endblock %}

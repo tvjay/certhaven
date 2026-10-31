@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% set active = "templates" %}
+{% block title %}Templates{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Templates</h1>
+  <div class="actions">{% if can('admin') %}<a class="btn primary" href="{{ url_for('templates.edit') }}">New template</a>{% endif %}</div>
+</div>
+<div class="table-wrap"><table>
+  <thead><tr><th>Name</th><th>Type</th><th>Key usage</th><th>Extended key usage</th><th>Validity</th><th>Default key</th>{% if can('admin') %}<th></th>{% endif %}</tr></thead>
+  <tbody>
+  {% for t in rows %}
+    <tr>
+      <td>{% if can('admin') %}<a href="{{ url_for('templates.edit', id=t.id) }}">{{ t.name }}</a>{% else %}{{ t.name }}{% endif %}</td>
+      <td>{% if t.is_ca %}CA{% if t.path_length is not none %} (path {{ t.path_length }}){% endif %}{% else %}End-entity{% endif %}</td>
+      <td class="small">{{ t.key_usage_list|join(', ') }}</td>
+      <td class="small">{{ t.eku_list|join(', ') }}</td>
+      <td>{{ t.validity_days }} days</td>
+      <td>{{ algorithms.get(t.key_algo, t.key_algo) }}</td>
+      {% if can('admin') %}<td><form method="post" action="{{ url_for('templates.delete', id=t.id) }}" data-confirm="Delete template {{ t.name }}?">{{ csrf_field() }}<button class="btn small danger-outline">Delete</button></form></td>{% endif %}
+    </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+<p class="muted small">The 398-day limit browsers enforce applies to public CAs, not to roots you install yourself, but 397 days or less for server certificates is still a sensible default.</p>
+{% endblock %}

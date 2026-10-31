@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% from "_macros.html" import subject_inputs %}
+{% set active = "templates" %}
+{% block title %}{{ 'Edit' if row else 'New' }} template{% endblock %}
+{% block content %}
+<h1>{{ 'Edit template ' ~ row.name if row else 'New template' }}</h1>
+<form method="post" class="card wide">
+  {{ csrf_field() }}
+  <div class="grid">
+    <label>Name <input name="name" value="{{ values.get('name') or '' }}" required></label>
+    <label>Validity (days) <input type="number" name="validity_days" min="1" value="{{ values.get('validity_days') or '' }}" required></label>
+    <label>Default key algorithm
+      <select name="key_algo">{% for v, l in algorithms.items() %}<option value="{{ v }}" {{ 'selected' if values.get('key_algo') == v }}>{{ l }}</option>{% endfor %}</select>
+    </label>
+  </div>
+  <div class="grid">
+    <label class="check"><input type="checkbox" name="is_ca" value="1" {{ 'checked' if values.get('is_ca') }}> Certificate authority</label>
+    <label>Path length (CA only; empty = unlimited) <input type="number" name="path_length" min="0" value="{{ values.get('path_length') if values.get('path_length') is not none else '' }}"></label>
+  </div>
+
+  <fieldset>
+    <legend>Key usage (critical)</legend>
+    {% for name, attr, label in key_usages %}
+      <label class="check"><input type="checkbox" name="key_usage" value="{{ name }}" {{ 'checked' if name in values.get('key_usage', []) }}> {{ label }}</label>
+    {% endfor %}
+    <small>Key/data encipherment are dropped automatically for non-RSA keys.</small>
+  </fieldset>
+  <fieldset>
+    <legend>Extended key usage</legend>
+    {% for name, oid, label in ext_key_usages %}
+      <label class="check"><input type="checkbox" name="ext_key_usage" value="{{ name }}" {{ 'checked' if name in values.get('ext_key_usage', []) }}> {{ label }}</label>
+    {% endfor %}
+  </fieldset>
+
+  <h3>Subject defaults</h3>
+  <p class="small muted">Pre-filled when issuing with this template.</p>
+  {{ subject_inputs(subject_fields, values) }}
+
+  <button class="btn primary">Save</button>
+  <a class="btn" href="{{ url_for('templates.index') }}">Cancel</a>
+</form>
+{% endblock %}

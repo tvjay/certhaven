@@ -1,0 +1,16 @@
+#!/bin/sh
+# Nightly consistent copy of the certmgr database. Private keys inside stay encrypted.
+# Run daily by certmgr-backup.timer.
+set -eu
+DEST=/var/backups/certmgr
+KEEP_DAYS=30
+install -d -m 0700 "$DEST"
+/usr/bin/python3 -I - "$DEST/certmgr-$(date +%Y%m%d).db" <<'EOF'
+import sqlite3, sys
+src = sqlite3.connect("file:/var/lib/certmgr/certmgr.db?mode=ro", uri=True)
+dst = sqlite3.connect(sys.argv[1])
+src.backup(dst)
+dst.close(); src.close()
+EOF
+chmod 0600 "$DEST"/certmgr-*.db
+find "$DEST" -name 'certmgr-*.db' -mtime +"$KEEP_DAYS" -delete

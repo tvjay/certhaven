@@ -1,0 +1,70 @@
+certmgr (0.9.4-1) trixie; urgency=medium
+
+  * First public release, under the GNU GPL v3.0 or later.
+  * Packages are published as GitHub releases.
+
+ -- tvjay <11197859+tvjay@users.noreply.github.com>  Fri, 30 Oct 2026 23:07:57 -0400
+
+certmgr (0.9.3-1) trixie; urgency=medium
+
+  * Restore a backup from Settings; Import refuses database backups.
+  * About box on Settings with the version and package build date.
+
+ -- tvjay <11197859+tvjay@users.noreply.github.com>  Fri, 30 Oct 2026 22:54:15 -0400
+
+certmgr (0.9.2-1) trixie; urgency=medium
+
+  * "Show times in" is one global setting under Settings instead of a
+    per-user one; the per-user column from 0.9.1 is dropped on upgrade.
+  * Two-column pages start both columns at the same height.
+
+ -- tvjay <11197859+tvjay@users.noreply.github.com>  Fri, 30 Oct 2026 23:00:00 -0400
+
+certmgr (0.9.1-1) trixie; urgency=medium
+
+  * Per-user setting to show times in UTC or the browser's time zone.
+  * Security fixes: password-change attempts are rate-limited, SMTP ports
+    and error messages are restricted, unencrypted exports need confirmation,
+    and CRL numbers are unique per CA.
+  * Faster pages and alert checks with fewer queries; public-key
+    fingerprints are stored and filled in on upgrade.
+  * No longer takes over install.sh installations or reads
+    /etc/certmgr/notify.conf.
+
+ -- tvjay <11197859+tvjay@users.noreply.github.com>  Fri, 30 Oct 2026 22:30:00 -0400
+
+certmgr (0.9.0-1) trixie; urgency=medium
+
+  * Version numbers reset to 0.x; 1.0.0-1.2.1 are renumbered 0.6.0-0.8.1.
+  * Keys page: search by name or fingerprint, filter by algorithm and usage.
+
+ -- tvjay <11197859+tvjay@users.noreply.github.com>  Fri, 30 Oct 2026 22:00:00 -0400
+
+certmgr (0.8.1-1) trixie; urgency=medium
+
+  * Header shows only the username and Log out; the role badge is removed.
+
+ -- tvjay <11197859+tvjay@users.noreply.github.com>  Fri, 30 Oct 2026 21:00:00 -0400
+
+certmgr (0.8.0-1) trixie; urgency=medium
+
+  * Lock keys button moved from the header to Settings.
+  * Layout fixes for button rows and radio buttons.
+  * Installed only from the Debian package; the archive installer is removed.
+  * nginx site template uses "http2 on;".
+
+ -- tvjay <11197859+tvjay@users.noreply.github.com>  Fri, 30 Oct 2026 12:00:00 -0400
+
+certmgr (0.7.0-1) trixie; urgency=medium
+
+  * Debian package: installs from an apt repository and uses Debian's
+    Python libraries; nightly backups move to certmgr-backup.timer.
+  * Takes over an existing install.sh installation without touching data.
+
+ -- tvjay <11197859+tvjay@users.noreply.github.com>  Thu, 29 Oct 2026 12:00:00 -0400
+
+certmgr (0.6.0-1) trixie; urgency=medium
+
+  * First release.
+
+ -- tvjay <11197859+tvjay@users.noreply.github.com>  Thu, 29 Oct 2026 09:30:00 -0400

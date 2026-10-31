@@ -1,0 +1,59 @@
+{% macro status(row) -%}
+  <span class="badge {{ row.status }}">{{ row.status }}</span>
+{%- endmacro %}
+
+{% macro subject_inputs(fields, values) %}
+  <div class="grid">
+    {% for key, oid, label in fields %}
+      <label>{{ label }}
+        <input name="subj_{{ key }}" value="{{ values.get('subj_' ~ key, '') }}"
+               {% if key == 'C' %}maxlength="2" placeholder="US"{% endif %}
+               {% if key == 'CN' %}placeholder="www.example.internal"{% endif %}>
+      </label>
+    {% endfor %}
+  </div>
+{% endmacro %}
+
+{% macro key_select(keys, algorithms, values) %}
+  <div class="grid">
+    <label>Private key
+      <select name="key">
+        <option value="new" {{ 'selected' if values.get('key', 'new') == 'new' }}>Generate a new key</option>
+        {% for k in keys %}
+          <option value="{{ k.id }}" {{ 'selected' if values.get('key') == k.id|string }}>{{ k.name }} ({{ k.algo }})</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>New key algorithm
+      <select name="key_algo">
+        {% for value, label in algorithms.items() %}
+          <option value="{{ value }}" {{ 'selected' if values.get('key_algo') == value }}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+  </div>
+{% endmacro %}
+
+{% macro cert_table(rows, show_issuer=true) %}
+  {% if rows %}
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Name</th><th>Subject</th>{% if show_issuer %}<th>Issuer</th>{% endif %}<th>Expires</th><th>Status</th><th>Key</th></tr></thead>
+    <tbody>
+    {% for c in rows %}
+      <tr>
+        <td><a href="{{ url_for('certs.detail', id=c.id) }}">{{ c.name }}</a>{% if c.is_ca %} <span class="tag">CA</span>{% endif %}</td>
+        <td class="mono small">{{ c.subject }}</td>
+        {% if show_issuer %}<td>{% if c.self_signed %}<span class="muted">self-signed</span>{% elif c.issuer %}<a href="{{ url_for('certs.detail', id=c.issuer.id) }}">{{ c.issuer.name }}</a>{% else %}<span class="muted">unknown</span>{% endif %}</td>{% endif %}
+        <td>{{ c.not_after|d }}{% if c.status == 'valid' %} <span class="muted">({{ c.days_left }}d)</span>{% endif %}</td>
+        <td>{{ status(c) }}</td>
+        <td>{{ '✓' if c.key_id else '' }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+    <p class="muted">None.</p>
+  {% endif %}
+{% endmacro %}

@@ -1,0 +1,16 @@
+#!/bin/sh
+set -e
+
+case "$1" in
+    remove|deconfigure)
+        if [ -d /run/systemd/system ]; then
+            systemctl stop certmgr-notify.timer certmgr-backup.timer certmgr.service || true
+            systemctl disable --quiet certmgr.service certmgr-notify.timer certmgr-backup.timer || true
+        fi
+        ;;
+esac
+
+# Bytecode compiled by postinst; dpkg does not know about it.
+find /usr/lib/certmgr -name __pycache__ -type d -prune -exec rm -rf {} + 2>/dev/null || true
+
+exit 0

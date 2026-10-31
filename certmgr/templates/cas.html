@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% from "_macros.html" import status %}
+{% set active = "cas" %}
+{% block title %}Certificate authorities{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Certificate authorities</h1>
+  <div class="actions">{% if can('admin') %}<a class="btn primary" href="{{ url_for('certs.new', issuer='') }}">New root CA</a>{% endif %}</div>
+</div>
+{% if rows %}
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Name</th><th>Subject</th><th>Issuer</th><th>Expires</th><th>Status</th><th>Key</th><th>Issued</th><th></th></tr></thead>
+    <tbody>
+    {% for ca, depth in rows %}
+      <tr>
+        <td class="nowrap depth-{{ [depth, 5]|min }}">
+          {% if depth %}<span class="indent">└</span>{% endif %}
+          <a href="{{ url_for('certs.detail', id=ca.id) }}">{{ ca.name }}</a>
+        </td>
+        <td class="mono small">{{ ca.subject }}</td>
+        <td>{% if ca.self_signed %}<span class="muted">self-signed</span>{% elif ca.issuer %}<a href="{{ url_for('certs.detail', id=ca.issuer.id) }}">{{ ca.issuer.name }}</a>{% else %}<span class="muted">unknown</span>{% endif %}</td>
+        <td>{{ ca.not_after|d }}{% if ca.status == 'valid' %} <span class="muted">({{ ca.days_left }}d)</span>{% endif %}</td>
+        <td>{{ status(ca) }}</td>
+        <td>{{ '✓' if ca.key_id else '' }}</td>
+        <td><a href="{{ url_for('certs.index', issuer=ca.id) }}">{{ issued.get(ca.id, 0) }}</a></td>
+        <td class="nowrap">{% if can('operator') and ca.key_id and ca.status == 'valid' %}<a class="btn small" href="{{ url_for('certs.new', issuer=ca.id) }}">+ Issue</a>{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <p class="muted small">Sub-CAs are listed under their issuer.{% if can('admin') %} To create an intermediate CA, use “+ Issue” on its parent and choose the Intermediate CA template.{% endif %}</p>
+{% elif can('admin') %}
+  <p>No CAs yet. <a href="{{ url_for('certs.new', issuer='') }}">Create a root CA</a> or
+     <a href="{{ url_for('importer.index') }}">import an existing one</a>.</p>
+{% else %}
+  <p class="muted">No CAs yet. An admin needs to create or import one.</p>
+{% endif %}
+{% endblock %}
