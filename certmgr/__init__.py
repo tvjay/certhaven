@@ -8,7 +8,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .models import db, upgrade_schema
 
-__version__ = "0.9.5"
+__version__ = "0.9.6"
 
 # Where users of this instance can get its source code, linked from every page. certmgr is licensed under
 # the AGPL: if you run a modified version for others, point this at the source of your version.

@@ -47,7 +47,7 @@ gzip -9n < "$SRC/packaging/debian/changelog" > "$PKG/usr/share/doc/certmgr/chang
 gzip -9n < "$SRC/CHANGELOG.md" > "$PKG/usr/share/doc/certmgr/changelog.gz"
 
 # Maintainer scripts and control file
-install -m 0755 "$SRC/packaging/debian/postinst" "$SRC/packaging/debian/prerm" "$SRC/packaging/debian/postrm" \
+install -m 0755 "$SRC/packaging/debian/preinst" "$SRC/packaging/debian/postinst" "$SRC/packaging/debian/prerm" "$SRC/packaging/debian/postrm" \
         "$PKG/DEBIAN/"
 find "$PKG/usr" -type d -exec chmod 0755 {} +
 find "$PKG/usr" -type f ! -perm -u+x -exec chmod 0644 {} +

@@ -1,3 +1,10 @@
+certmgr (0.9.6-1) trixie; urgency=medium
+
+  * Installs cleanly on hosts with IPv6 disabled: nginx no longer enables its
+    stock IPv6 site during the install.
+
+ -- tvjay <11197859+tvjay@users.noreply.github.com>  Sun, 01 Nov 2026 09:00:09 -0500
+
 certmgr (0.9.5-1) trixie; urgency=medium
 
   * License changed to the GNU AGPL v3.0 or later.

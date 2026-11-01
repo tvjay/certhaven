@@ -87,7 +87,7 @@ Download the `.deb` and its checksum from the [latest release](https://github.co
 check it, and install it (apt pulls in the dependencies):
 
 ```bash
-VERSION=0.9.5   # the latest release
+VERSION=0.9.6   # the latest release
 wget https://github.com/tvjay/certmgr/releases/download/v$VERSION/certmgr_${VERSION}-1_all.deb{,.sha256}
 sha256sum -c certmgr_${VERSION}-1_all.deb.sha256
 sudo apt install ./certmgr_${VERSION}-1_all.deb
@@ -101,8 +101,8 @@ TLS certificate and an nginx site, and starts `certmgr.service` (gunicorn on 127
 email-alert and nightly-backup timers. Data, TLS files and your edits to the nginx site are never overwritten by
 upgrades. Install `unattended-upgrades` (recommended by the package) so security fixes are applied automatically.
 
-> On a host with IPv6 disabled, Debian's nginx package fails to start its default site during installation.
-> If `apt install` stops at nginx, run `sudo rm /etc/nginx/sites-enabled/default` and then
+> On a host with IPv6 disabled, certmgr stops Debian's nginx package from enabling its stock site, which
+> listens on IPv6 and would fail to start. If nginx was installed and failed before certmgr, run `sudo rm /etc/nginx/sites-enabled/default` and then
 > `sudo dpkg --configure -a`.
 
 ### After installing

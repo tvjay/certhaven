@@ -33,6 +33,10 @@ install_nginx_site() {
             echo "certmgr: disabled the nginx default site (it conflicts with certmgr's)."
         fi
     fi
+    # Left by preinst on IPv6-disabled hosts so nginx would not enable its stock site.
+    if [ -f /etc/nginx/sites-enabled/default ] && grep -q '^# certmgr placeholder' /etc/nginx/sites-enabled/default; then
+        rm -f /etc/nginx/sites-enabled/default
+    fi
 }
 
 case "$1" in

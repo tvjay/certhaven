@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.6 — 2026-11-01
+
+- **Installs cleanly on hosts with IPv6 disabled.** Debian's nginx package used to enable its stock site, which
+  listens on IPv6, fail to start, and stop the install before certmgr was configured. The package now keeps
+  that site from being enabled; the manual fix in the README is only needed if nginx was installed, and failed,
+  before certmgr.
+
 ## 0.9.5 — 2026-10-30
 
 - **License changed to the GNU Affero General Public License v3.0 or later** (AGPL), so certmgr stays open

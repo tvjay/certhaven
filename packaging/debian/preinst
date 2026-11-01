@@ -1,0 +1,21 @@
+#!/bin/sh
+set -e
+
+# Debian's nginx enables its stock site on first install, and that site listens on [::]:80.
+# On a host with IPv6 disabled nginx then fails to start, and the install stops before
+# certmgr is configured. apt unpacks certmgr before it configures nginx, so a placeholder
+# here keeps nginx-common from linking the stock site. postinst removes it again.
+PLACEHOLDER=/etc/nginx/sites-enabled/default
+MARKER="# certmgr placeholder"
+
+case "$1" in
+    install)
+        if [ ! -e /proc/net/if_inet6 ] && [ ! -e "$PLACEHOLDER" ] && [ ! -L "$PLACEHOLDER" ] &&
+           ! dpkg-query -W -f='${db:Status-Abbrev}' nginx-common 2>/dev/null | grep -q '^ii'; then
+            mkdir -p /etc/nginx/sites-enabled
+            printf '%s: stops the IPv6 default site; removed when certmgr is configured.\n' "$MARKER" > "$PLACEHOLDER"
+        fi
+        ;;
+esac
+
+exit 0
