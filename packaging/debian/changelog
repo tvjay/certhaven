@@ -1,3 +1,10 @@
+certmgr (0.9.7-1) trixie; urgency=medium
+
+  * A logo next to the name in the header and on the login page, also used
+    as the browser tab icon.
+
+ -- tvjay <11197859+tvjay@users.noreply.github.com>  Sun, 01 Nov 2026 22:27:59 -0500
+
 certmgr (0.9.6-1) trixie; urgency=medium
 
   * Installs cleanly on hosts with IPv6 disabled: nginx no longer enables its

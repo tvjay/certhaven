@@ -87,7 +87,7 @@ Download the `.deb` and its checksum from the [latest release](https://github.co
 check it, and install it (apt pulls in the dependencies):
 
 ```bash
-VERSION=0.9.6   # the latest release
+VERSION=0.9.7   # the latest release
 wget https://github.com/tvjay/certmgr/releases/download/v$VERSION/certmgr_${VERSION}-1_all.deb{,.sha256}
 sha256sum -c certmgr_${VERSION}-1_all.deb.sha256
 sudo apt install ./certmgr_${VERSION}-1_all.deb

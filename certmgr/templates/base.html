@@ -4,13 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{% endblock %} · certmgr</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='logo.svg') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <script src="{{ url_for('static', filename='app.js') }}" defer></script>
 </head>
 <body data-time-display="{{ time_display }}">
 {% if logged_in %}
 <header class="topbar">
-  <a class="brand" href="{{ url_for('main.dashboard') }}">certmgr</a>
+  <a class="brand" href="{{ url_for('main.dashboard') }}"><img src="{{ url_for('static', filename='logo.svg') }}" alt="" width="28" height="28">certmgr</a>
   <nav>
     {% for key, label, endpoint, role in nav_items if can(role) %}
       <a href="{{ url_for(endpoint) }}" class="{{ 'active' if active == key }}">{{ label }}</a>

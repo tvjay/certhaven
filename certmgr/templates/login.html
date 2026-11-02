@@ -2,7 +2,7 @@
 {% block title %}Log in{% endblock %}
 {% block content %}
 <div class="card">
-  <h1>certmgr</h1>
+  <h1 class="brand"><img src="{{ url_for('static', filename='logo.svg') }}" alt="" width="32" height="32">certmgr</h1>
   <form method="post">
     {{ csrf_field() }}
     <input type="hidden" name="next" value="{{ next or '' }}">

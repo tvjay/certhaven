@@ -39,7 +39,9 @@ code, .mono, pre, textarea.mono { font-family: ui-monospace, "Cascadia Mono", Co
 
 .topbar { display: flex; align-items: center; gap: 1rem; padding: .6rem 1.25rem; background: var(--surface);
   border-bottom: 1px solid var(--border); flex-wrap: wrap; }
-.topbar .brand { font-weight: 700; text-decoration: none; color: var(--text); }
+.brand { display: inline-flex; align-items: center; gap: .55rem; }
+.brand img { flex: none; display: block; }
+.topbar .brand { font-weight: 700; font-size: 1.1rem; text-decoration: none; color: var(--text); }
 .topbar nav { display: flex; gap: .25rem; flex: 1; flex-wrap: wrap; }
 .topbar nav a { padding: .3rem .6rem; border-radius: 6px; text-decoration: none; color: var(--muted); }
 .topbar nav a:hover { color: var(--text); background: var(--bg); }

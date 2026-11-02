@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.7 — 2026-11-01
+
+- A logo now sits next to the name in the header and on the login page, and is used as the browser tab icon.
+
 ## 0.9.6 — 2026-11-01
 
 - **Installs cleanly on hosts with IPv6 disabled.** Debian's nginx package used to enable its stock site, which
