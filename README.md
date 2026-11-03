@@ -1,6 +1,5 @@
 # certhaven
 
-[![Tests](https://github.com/tvjay/certhaven/actions/workflows/ci.yml/badge.svg)](https://github.com/tvjay/certhaven/actions/workflows/ci.yml)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE)
 
 **A self-hosted private certificate authority with a web UI.** certhaven builds a CA hierarchy, issues and signs
@@ -176,58 +175,16 @@ sudo journalctl -u certhaven-notify        # email alert runs
   sudo -u certhaven CERTHAVEN_DATA_DIR=/var/lib/certhaven flask --app /usr/lib/certhaven/wsgi notify --dry-run
   ```
 
-## Development
+## Contributions
 
-```bash
-python3 -m venv .venv
-.venv/bin/pip install -r requirements-dev.txt
-.venv/bin/pytest
-CERTHAVEN_INSECURE_COOKIES=1 CERTHAVEN_DATA_DIR=./instance .venv/bin/python wsgi.py
-```
-
-The dev server listens on http://127.0.0.1:8000. `CERTHAVEN_INSECURE_COOKIES=1` allows the session cookie over
-plain http; never set it in production. The tests cover the crypto, every role's permissions, and end-to-end
-flows whose chains are verified with `cryptography`'s X.509 path validator.
-
-`requirements.txt` lists the libraries for development; the package depends on Debian's versions of the same
-libraries, which the test suite also passes against.
-
-To build the Debian package on any Debian or Ubuntu machine (needs only `dpkg-deb`), bump `__version__` in
-`certhaven/__init__.py`, add an entry to `packaging/debian/changelog`, then:
-
-```bash
-bash packaging/build-deb.sh        # writes dist/certhaven_<version>-1_all.deb
-```
-
-GitHub Actions runs the tests on every push and pull request. Pushing a tag such as `v0.9.4` builds the
-package and publishes it, with its checksum, as a GitHub release.
-
-```
-certhaven/
-  crypto/       keys, certificates, CSRs, CRLs, import/PKCS#12, vault (key encryption)
-  accounts.py   users, password checks and key wrapping
-  notify.py     email alerts
-  services.py   business logic between models and crypto
-  security.py   sessions, roles, CSRF, throttling, headers
-  views/        one blueprint per page group
-  templates/    Jinja HTML
-deploy/         systemd units, nginx site, backup script, ufw and SSH hardening (installed by the package)
-packaging/      Debian package: control file, maintainer scripts, build script
-tests/          pytest suite
-docs/           screenshots
-.github/        CI: tests, package build and releases
-```
-
-## Contributing
-
-Bug reports and pull requests are welcome. Please run the tests (`pytest`) before opening a pull request, keep
-changes focused, and add a line to the `Unreleased` section of [CHANGELOG.md](CHANGELOG.md) for anything a user
-would notice.
+certhaven is a one-person project and isn't looking for contributors: pull requests and feature requests won't be
+reviewed. You're welcome to use it, and to fork and modify it under the license below. Security problems are the
+exception; please report them as described next.
 
 ## Security
 
 certhaven holds the keys to your CA, so please report vulnerabilities privately, as described in
-[SECURITY.md](SECURITY.md), rather than in a public issue.
+[SECURITY.md](SECURITY.md).
 
 ## License
 

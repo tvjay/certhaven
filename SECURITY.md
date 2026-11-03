@@ -9,11 +9,8 @@ no backports to older versions.
 
 ## Reporting a vulnerability
 
-Please **do not open a public issue**. Report it privately instead:
-
-1. Go to the repository's **Security** tab and choose **Report a vulnerability**
-   (GitHub private vulnerability reporting), or
-2. if that is not available, open an issue that only asks for a private contact, without any details.
+Report it privately: go to the repository's **Security** tab and choose **Report a vulnerability** (GitHub
+private vulnerability reporting). The repository has no public issue tracker.
 
 Include what you found, how to reproduce it, which version you tested, and what an attacker could do with it.
 You can expect an acknowledgement within a week. Once a fix is released, you will be credited in the changelog

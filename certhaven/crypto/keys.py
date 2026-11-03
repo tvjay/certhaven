@@ -12,6 +12,11 @@ ALGORITHMS = {
     "ed25519": "Ed25519",
 }
 
+# An imported key may use an algorithm we do not generate (e.g. Ed448 or P-521), but it must still
+# be strong enough to sign with. RSA under this many bits is rejected; so is any curve not listed.
+MIN_RSA_BITS = 2048
+ALLOWED_CURVES = {"secp256r1", "secp384r1", "secp521r1"}
+
 
 def generate(algo):
     if algo in ("rsa2048", "rsa3072", "rsa4096"):
@@ -47,9 +52,14 @@ def describe(key):
 
 
 def check_supported(key):
-    if not isinstance(_public(key), (rsa.RSAPublicKey, ec.EllipticCurvePublicKey,
-                                     ed25519.Ed25519PublicKey, ed448.Ed448PublicKey)):
+    pub = _public(key)
+    if not isinstance(pub, (rsa.RSAPublicKey, ec.EllipticCurvePublicKey,
+                            ed25519.Ed25519PublicKey, ed448.Ed448PublicKey)):
         raise ValueError(f"Unsupported key type: {describe(key)}")
+    if isinstance(pub, rsa.RSAPublicKey) and pub.key_size < MIN_RSA_BITS:
+        raise ValueError(f"RSA keys must be at least {MIN_RSA_BITS} bits; this one is {pub.key_size}.")
+    if isinstance(pub, ec.EllipticCurvePublicKey) and pub.curve.name not in ALLOWED_CURVES:
+        raise ValueError(f"Unsupported elliptic curve: {pub.curve.name}.")
 
 
 def signing_hash(private_key):
