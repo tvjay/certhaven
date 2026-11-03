@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% set active = "users" %}
+{% set active = "settings" %}
 {% block title %}{{ 'Edit ' ~ user.username if user else 'Add user' }}{% endblock %}
 {% block content %}
 <h1>{{ 'Edit ' ~ user.username if user else 'Add user' }}</h1>
@@ -28,6 +28,6 @@
     <label>Confirm <input type="password" name="confirm" minlength="{{ min_password }}" {{ 'required' if not user }} autocomplete="new-password"></label>
   </div>
   <button class="btn primary">{{ 'Save' if user else 'Create user' }}</button>
-  <a class="btn" href="{{ url_for('users.index') }}">Cancel</a>
+  <a class="btn" href="{{ url_for('main.settings', _anchor='users') }}">Cancel</a>
 </form>
 {% endblock %}

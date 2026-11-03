@@ -1,6 +1,6 @@
 #!/bin/bash
-# Host firewall for the certmgr server, using ufw. Run as root:
-#   sudo bash /usr/share/certmgr/firewall-ufw.sh "192.168.10.0/24 10.20.0.0/16"
+# Host firewall for the certhaven server, using ufw. Run as root:
+#   sudo bash /usr/share/certhaven/firewall-ufw.sh "192.168.10.0/24 10.20.0.0/16"
 # The argument lists the management networks allowed to reach SSH (22) and the admin UI (443).
 # Port 80 stays open to everyone so clients can download CRLs and CA certificates.
 # Safe to re-run: it rebuilds the rules from scratch each time.
@@ -31,7 +31,7 @@ ufw default deny routed
 ufw allow 80/tcp comment 'CRL and CA certificate downloads'
 for net in $MGMT_NETS; do
     ufw allow from "$net" to any port 22 proto tcp comment 'SSH from management network'
-    ufw allow from "$net" to any port 443 proto tcp comment 'certmgr admin UI'
+    ufw allow from "$net" to any port 443 proto tcp comment 'certhaven admin UI'
 done
 ufw --force enable
 ufw status verbose

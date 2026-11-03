@@ -4,9 +4,9 @@ import sqlite3
 
 import pytest
 
-from certmgr import accounts, create_app, security
-from certmgr.crypto.vault import Vault
-from certmgr.models import AuditLog, Certificate, User, db
+from certhaven import accounts, create_app, security
+from certhaven.crypto.vault import Vault
+from certhaven.models import AuditLog, Certificate, User, db
 
 from .conftest import PASSWORD, TEMP, Client
 
@@ -233,7 +233,7 @@ def test_upgrade_from_single_password_database(tmp_path):
                            {"v": json.dumps(params)})
         db.session.commit()
     security.vault.lock()
-    con = sqlite3.connect(tmp_path / "certmgr.db")
+    con = sqlite3.connect(tmp_path / "certhaven.db")
     # Recreate audit_log exactly as the single-admin version defined it (no username column).
     con.execute("DROP TABLE audit_log")
     con.execute("CREATE TABLE audit_log (id INTEGER NOT NULL PRIMARY KEY, ts DATETIME NOT NULL, "
@@ -310,7 +310,7 @@ def test_upgrade_drops_per_user_time_display(tmp_path):
     Client(first).setup()
     with first.app_context():
         db.engine.dispose()
-    con = sqlite3.connect(tmp_path / "certmgr.db")   # as left by 0.9.1
+    con = sqlite3.connect(tmp_path / "certhaven.db")   # as left by 0.9.1
     con.execute("ALTER TABLE users ADD COLUMN time_display VARCHAR(10) NOT NULL DEFAULT 'utc'")
     con.commit()
     con.close()
@@ -319,3 +319,14 @@ def test_upgrade_drops_per_user_time_display(tmp_path):
         columns = {row[1] for row in db.session.execute(db.text("PRAGMA table_info(users)"))}
         assert "time_display" not in columns
         assert db.session.scalar(db.select(User)).username == "admin"
+
+
+def test_users_are_managed_on_settings(client, app):
+    client.setup()
+    r = client.add_user("olivia", "operator")
+    assert r.headers["Location"].endswith("/settings#users")
+    r = client.get("/users")
+    assert r.status_code == 302 and r.headers["Location"].endswith("/settings#users")
+    html = client.get("/settings").get_data(as_text=True)
+    assert 'id="users"' in html and ">olivia</a>" in html and "Add user" in html
+    assert not re.search(r'<nav>.*href="/users"', html, re.S)

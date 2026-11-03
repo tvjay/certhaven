@@ -65,13 +65,13 @@
       </div>
     </div>
     <div class="grid">
-      <label>From address <input name="mail_from" value="{{ v.MAIL_FROM }}" placeholder="certmgr@example.com"></label>
+      <label>From address <input name="mail_from" value="{{ v.MAIL_FROM }}" placeholder="certhaven@example.com"></label>
       <label>Send alerts to <input name="mail_to" value="{{ v.MAIL_TO }}" placeholder="you@example.com, ops@example.com">
         <small>Separate several addresses with commas.</small></label>
     </div>
     <label>Link in emails (optional) <input name="admin_url" value="{{ v.ADMIN_URL }}" placeholder="https://pki.example.internal/"></label>
-    <p class="small muted">Stored on the server outside the database and its backups, readable only by certmgr. The
-      password is not encrypted, because alerts must be sent while certmgr is locked.</p>
+    <p class="small muted">Stored on the server outside the database and its backups, readable only by certhaven. The
+      password is not encrypted, because alerts must be sent while certhaven is locked.</p>
     <button class="btn primary">Save email settings</button>
   </form>
 
@@ -102,12 +102,6 @@
   {% endif %}
 </section>
 
-<section class="card">
-  <h2>Users and passwords</h2>
-  <p>Add people and set their roles under <a href="{{ url_for('users.index') }}">Users</a>. Everyone changes their own
-    password under <a href="{{ url_for('account.index') }}">My account</a> (click your name at the top right).</p>
-</section>
-
 <section class="card" id="backup">
   <h2>Backup</h2>
   <p>Download a consistent copy of the database: users, private keys (still encrypted), certificates with their
@@ -131,7 +125,7 @@
 <section class="card" id="about">
   <h2>About</h2>
   <dl>
-    <dt>Version</dt><dd>certmgr {{ version }}</dd>
+    <dt>Version</dt><dd>certhaven {{ version }}</dd>
     <dt>Build date</dt><dd>{% if build_date %}{{ build_date|dt }}{% else %}<span class="muted">development build (running from source)</span>{% endif %}</dd>
     <dt>License</dt><dd>{{ license_name }}</dd>
     <dt>Source</dt><dd><a href="{{ source_url }}" rel="noopener">{{ source_url }}</a></dd>
@@ -139,4 +133,45 @@
 </section>
 </div>
 </div>
+
+<section class="card" id="users">
+  <div class="page-head">
+    <h2>Users</h2>
+    <div class="actions"><a class="btn primary" href="{{ url_for('users.new') }}">Add user</a></div>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Username</th><th>Role</th><th>Status</th><th>Last login</th><th></th></tr></thead>
+    <tbody>
+    {% for u in users %}
+      <tr>
+        <td><a href="{{ url_for('users.edit', id=u.id) }}">{{ u.username }}</a>{% if u.id == current_user.id %} <span class="muted small">(you)</span>{% endif %}</td>
+        <td>{{ u.role_label }}</td>
+        <td>
+          {% if u.disabled %}<span class="badge revoked">disabled</span>
+          {% elif u.must_change_password %}<span class="badge pending">must change password</span>
+          {% else %}<span class="badge valid">active</span>{% endif %}
+        </td>
+        <td>{{ u.last_login|dt if u.last_login else '—' }}</td>
+        <td>
+          {% if u.id != current_user.id %}
+          <form method="post" action="{{ url_for('users.delete', id=u.id) }}" data-confirm="Delete user {{ u.username }}?">
+            {{ csrf_field() }}<button class="btn small danger-outline">Delete</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  <details>
+    <summary>What each role can do</summary>
+    <dl>
+      {% for role, text in role_descriptions.items() %}<dt>{{ role|capitalize }}</dt><dd class="small">{{ text }}</dd>{% endfor %}
+    </dl>
+    <p class="small muted">Admins and operators unlock the private keys with their own password. An auditor's
+      password cannot decrypt anything, even with a copy of the database.</p>
+  </details>
+  <p class="small muted">Everyone changes their own password under <a href="{{ url_for('account.index') }}">My
+    account</a> (click your name at the top right).</p>
+</section>
 {% endblock %}

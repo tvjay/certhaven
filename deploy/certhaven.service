@@ -1,13 +1,13 @@
 [Unit]
-Description=certmgr private CA web application
+Description=certhaven private CA web application
 After=network.target
 
 [Service]
 Type=simple
-User=certmgr
-Group=certmgr
-WorkingDirectory=/usr/lib/certmgr
-Environment=CERTMGR_DATA_DIR=/var/lib/certmgr
+User=certhaven
+Group=certhaven
+WorkingDirectory=/usr/lib/certhaven
+Environment=CERTHAVEN_DATA_DIR=/var/lib/certhaven
 # Exactly one worker: the unlocked data key lives in that process's memory.
 ExecStart=/usr/bin/gunicorn --workers 1 --threads 8 --bind 127.0.0.1:8000 \
     --access-logfile - --forwarded-allow-ips 127.0.0.1 wsgi:app
@@ -17,7 +17,7 @@ UMask=0077
 LimitCORE=0
 MemoryMax=1G
 
-StateDirectory=certmgr
+StateDirectory=certhaven
 StateDirectoryMode=0700
 NoNewPrivileges=yes
 PrivateTmp=yes

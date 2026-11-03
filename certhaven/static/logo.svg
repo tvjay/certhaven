@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2f6fe0"/>
+      <stop offset="1" stop-color="#14a3a0"/>
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="8" fill="url(#g)"/>
+  <!-- A roof over a shield: a safe home for certificates. -->
+  <path d="M5.6 13.4L16 5.6l10.4 7.8" fill="none" stroke="#fff" stroke-width="2.6"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M9.2 14.2h13.6v3.1c0 4.5-2.9 7.8-6.8 9.3-3.9-1.5-6.8-4.8-6.8-9.3z" fill="#fff"/>
+  <path d="M12.6 18.6l2.4 2.4 4.4-4.6" fill="none" stroke="#2384c4" stroke-width="2.2"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

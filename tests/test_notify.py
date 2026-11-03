@@ -3,15 +3,15 @@ from datetime import timedelta
 
 import pytest
 
-from certmgr import notify
-from certmgr.models import Certificate, db, get_setting, utcnow
+from certhaven import notify
+from certhaven.models import Certificate, db, get_setting, utcnow
 
 CONF = """# test
 SMTP_HOST=smtp.example.test
 SMTP_PORT=2525
 SMTP_SECURITY=none
 MAIL_TO=admin@example.test, ops@example.test
-MAIL_FROM="certmgr@example.test"
+MAIL_FROM="certhaven@example.test"
 SMTP_PASSWORD=p#ss=word
 """
 
@@ -42,7 +42,7 @@ def test_config_parsing(app, mail):
     with app.app_context():
         cfg = notify.load_config()
     assert notify.recipients(cfg) == ["admin@example.test", "ops@example.test"]
-    assert cfg["MAIL_FROM"] == "certmgr@example.test"
+    assert cfg["MAIL_FROM"] == "certhaven@example.test"
     assert cfg["SMTP_PASSWORD"] == "p#ss=word"
 
 
@@ -88,7 +88,7 @@ def test_expiry_alerts_once_per_stage(client, mail):
     status = _run(client.app)
     assert status == {**status, "alerts": 1, "result": "sent"}
     _, subject, body = mail[-1]
-    assert subject == "[certmgr] 1 certificate expiring"
+    assert subject == "[certhaven] 1 certificate expiring"
     assert "web.example.test expires in 20 days" in body and "issuer: Root" in body
 
     assert _run(client.app)["result"] == "nothing new"   # same stage: not repeated
@@ -139,7 +139,7 @@ def test_failed_logins_grouped_and_not_repeated(client, mail):
         client.post("/login", {"username": "admin", "password": "wrong"})
     _run(client.app)
     _, subject, body = mail[-1]
-    assert subject == "[certmgr] failed logins"
+    assert subject == "[certhaven] failed logins"
     assert "3 failed login attempts from 127.0.0.1" in body   # wrong password for admin
     assert _run(client.app)["result"] == "nothing new"
 
@@ -174,7 +174,7 @@ def test_settings_page_and_buttons(client, mail):
     page = client.get("/settings").data.decode()
     assert "admin@example.test, ops@example.test" in page and "p#ss" not in page
     r = client.post("/settings/notify-test", follow_redirects=True)
-    assert b"Test email sent" in r.data and mail[-1][1] == "[certmgr] Test notification"
+    assert b"Test email sent" in r.data and mail[-1][1] == "[certhaven] Test notification"
     r = client.post("/settings/notify-run", follow_redirects=True)
     assert b"Checks ran" in r.data
     with client.app.app_context():
@@ -183,7 +183,7 @@ def test_settings_page_and_buttons(client, mail):
 
 FORM = {"smtp_host": "smtp.example.test", "smtp_port": "587", "smtp_security": "starttls",
         "smtp_user": "alerts@example.test", "smtp_password": "first-secret",
-        "mail_from": "certmgr@example.test", "mail_to": "a@example.test,  b@example.test",
+        "mail_from": "certhaven@example.test", "mail_to": "a@example.test,  b@example.test",
         "admin_url": "https://pki.example.test/"}
 
 

@@ -7,13 +7,13 @@ from cryptography import x509
 from cryptography.hazmat.primitives.serialization import pkcs12
 from cryptography.x509.verification import PolicyBuilder, Store
 
-import certmgr
-from certmgr import create_app
-from certmgr.crypto import csr as csrlib
-from certmgr.crypto import certs as certlib
-from certmgr.crypto import keys as keylib
-from certmgr.models import CRL, Certificate, Key, db
-from certmgr.views import main as main_views
+import certhaven
+from certhaven import create_app
+from certhaven.crypto import csr as csrlib
+from certhaven.crypto import certs as certlib
+from certhaven.crypto import keys as keylib
+from certhaven.models import CRL, Certificate, Key, db
+from certhaven.views import main as main_views
 
 from .conftest import PASSWORD, Client
 
@@ -326,7 +326,7 @@ def test_upgrade_adds_and_fills_public_key_fingerprints(client):
     data_dir = client.app.config["DATA_DIR"]
     with client.app.app_context():
         db.engine.dispose()
-    con = sqlite3.connect(f"{data_dir}/certmgr.db")
+    con = sqlite3.connect(f"{data_dir}/certhaven.db")
     con.executescript("DROP INDEX ix_certificates_pubkey_fp; ALTER TABLE certificates DROP COLUMN pubkey_fp;")
     con.close()
     upgraded = create_app({"DATA_DIR": data_dir, "TESTING": True, "SESSION_COOKIE_SECURE": False})
@@ -347,12 +347,12 @@ def test_ca_list_counts_issued_certificates(client):
 def test_settings_about_shows_version_and_build_date(client, monkeypatch, tmp_path):
     client.setup()
     page = client.get("/settings").data.decode()
-    assert f"certmgr {certmgr.__version__}" in page and "development build" in page
+    assert f"certhaven {certhaven.__version__}" in page and "development build" in page
 
     (tmp_path / "BUILD_DATE").write_text("2026-10-31T03:00:00Z\n")
-    monkeypatch.setattr(certmgr, "__file__", str(tmp_path / "__init__.py"))
-    assert certmgr.build_date() == datetime(2026, 10, 31, 3, 0)
-    monkeypatch.setattr(main_views, "build_date", certmgr.build_date)
+    monkeypatch.setattr(certhaven, "__file__", str(tmp_path / "__init__.py"))
+    assert certhaven.build_date() == datetime(2026, 10, 31, 3, 0)
+    monkeypatch.setattr(main_views, "build_date", certhaven.build_date)
     page = client.get("/settings").data.decode()
     assert '<time datetime="2026-10-31T03:00:00Z" data-kind="datetime">2026-10-31 03:00 UTC</time>' in page
     assert "development build" not in page
@@ -361,10 +361,10 @@ def test_settings_about_shows_version_and_build_date(client, monkeypatch, tmp_pa
 def test_every_page_links_to_the_source(client):
     # AGPL section 13: users interacting with the app over a network are offered its source.
     login = client.get("/login", follow_redirects=True).data.decode()
-    assert f'<a href="{certmgr.SOURCE_URL}" rel="noopener">Source code</a>' in login
-    assert certmgr.LICENSE_NAME in login
+    assert f'<a href="{certhaven.SOURCE_URL}" rel="noopener">Source code</a>' in login
+    assert certhaven.LICENSE_NAME in login
     client.setup()
     for url in ("/", "/certs", "/account"):
-        assert f'href="{certmgr.SOURCE_URL}"' in client.get(url).data.decode(), url
+        assert f'href="{certhaven.SOURCE_URL}"' in client.get(url).data.decode(), url
     about = client.get("/settings").data.decode()
-    assert f"<dt>License</dt><dd>{certmgr.LICENSE_NAME}</dd>" in about
+    assert f"<dt>License</dt><dd>{certhaven.LICENSE_NAME}</dd>" in about

@@ -1,4 +1,4 @@
-from certmgr import create_app
+from certhaven import create_app
 
 app = create_app()
 

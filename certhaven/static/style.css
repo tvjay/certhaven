@@ -62,7 +62,7 @@ section { margin: 1.75rem 0; }
 .card.wide { max-width: 900px; }
 .page-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;
   margin-bottom: 1rem; }
-.page-head h1 { margin: 0; }
+.page-head :is(h1, h2) { margin: 0; }
 .actions, .buttons { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
 .cols { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 1rem; align-items: start; }
 @media (max-width: 860px) { .cols { grid-template-columns: 1fr; } }

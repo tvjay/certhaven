@@ -1,7 +1,7 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
-Upstream-Name: certmgr
+Upstream-Name: certhaven
 Upstream-Contact: tvjay <11197859+tvjay@users.noreply.github.com>
-Source: https://github.com/tvjay/certmgr
+Source: https://github.com/tvjay/certhaven
 
 Files: *
 Copyright: 2026 tvjay <11197859+tvjay@users.noreply.github.com>

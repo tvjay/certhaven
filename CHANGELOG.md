@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.10.0 — 2026-11-02
+
+- **certmgr is now certhaven.** The name certmgr is already used by Windows, Mono and Cloudflare tools. The
+  package, commands, services, paths and repository are renamed; encrypted keys need no changes.
+- **Moving an existing install:** take a backup, then install the certhaven package. It removes certmgr and moves
+  its database, TLS files, backups, nginx site and system user to the new names (`/var/lib/certhaven`,
+  `/etc/certhaven`, `/var/backups/certhaven`, `certhaven.service`). Everyone has to log in again.
+- Settings and scripts that used `CERTMGR_*` environment variables now use `CERTHAVEN_*`.
+- A new logo to match the name: a roof over the shield, a safe home for your certificates.
+- **Users** moved from the top menu to Settings → Users, which lists everyone with their role and status. The
+  old /users address takes you there.
+
 ## 0.9.7 — 2026-11-01
 
 - A logo now sits next to the name in the header and on the login page, and is used as the browser tab icon.

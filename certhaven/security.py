@@ -103,11 +103,11 @@ def csrf_field():
 def is_configured():
     # Once the first admin exists the app stays configured (the last admin cannot be
     # removed), so stop counting users on every request after that.
-    if current_app.extensions.get("certmgr_configured"):
+    if current_app.extensions.get("certhaven_configured"):
         return True
     configured = db.session.scalar(db.select(db.func.count(User.id))) > 0
     if configured:
-        current_app.extensions["certmgr_configured"] = True
+        current_app.extensions["certhaven_configured"] = True
     return configured
 
 
@@ -183,7 +183,6 @@ NAV = [
     ("templates", "Templates", "templates.index", "auditor"),
     ("import", "Import", "importer.index", "admin"),
     ("audit", "Audit log", "main.audit", "auditor"),
-    ("users", "Users", "users.index", "admin"),
     ("settings", "Settings", "main.settings", "admin"),
 ]
 

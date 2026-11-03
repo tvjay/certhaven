@@ -3,8 +3,8 @@ import os
 import re
 import sqlite3
 
-from certmgr import create_app
-from certmgr.models import AuditLog, Certificate, Key, User, db
+from certhaven import create_app
+from certhaven.models import AuditLog, Certificate, Key, User, db
 
 from .conftest import PASSWORD, TEMP, Client
 
@@ -24,7 +24,7 @@ def _source_backup(tmp_path):
     return src.get("/settings/backup").data
 
 
-def _restore(client, data, password=PASSWORD, filename="certmgr-backup.db"):
+def _restore(client, data, password=PASSWORD, filename="certhaven-backup.db"):
     return client.post("/settings/restore", {"password": password, "backup": (io.BytesIO(data), filename)},
                        content_type="multipart/form-data")
 
@@ -68,7 +68,7 @@ def test_restore_refuses_bad_input_and_changes_nothing(tmp_path):
     assert b"Your password is incorrect" in dst.http.get(
         _restore(dst, backup, password="wrong password!!").headers["Location"]).data
     r = _restore(dst, b"-----BEGIN CERTIFICATE-----\n...", filename="cert.pem")
-    assert b"Choose a certmgr backup file" in dst.http.get(r.headers["Location"]).data
+    assert b"Choose a certhaven backup file" in dst.http.get(r.headers["Location"]).data
 
     other = tmp_path / "other.db"
     con = sqlite3.connect(other)
@@ -78,7 +78,7 @@ def test_restore_refuses_bad_input_and_changes_nothing(tmp_path):
     con.close()
     r = _restore(dst, other.read_bytes())
     assert r.status_code == 302, "a backup over 2 MB must reach the check, not fail on size"
-    assert b"not a certmgr backup" in dst.http.get(r.headers["Location"]).data
+    assert b"not a certhaven backup" in dst.http.get(r.headers["Location"]).data
 
     assert [c.name for c in _rows(dst.app, Certificate)] == ["Target Root"]
     assert dst.get("/certs").status_code == 200                       # still logged in
@@ -99,7 +99,7 @@ def test_import_refuses_a_database_backup(tmp_path):
     backup = _source_backup(tmp_path)
     dst = Client(_app(tmp_path / "target"))
     dst.setup()
-    r = dst.post("/import", {"file": (io.BytesIO(backup), "certmgr-backup.db")},
+    r = dst.post("/import", {"file": (io.BytesIO(backup), "certhaven-backup.db")},
                  content_type="multipart/form-data", follow_redirects=True)
-    assert b"This is a certmgr database backup" in r.data and b"Restore backup" in r.data
+    assert b"This is a certhaven database backup" in r.data and b"Restore backup" in r.data
     assert _rows(dst.app, Certificate) == []

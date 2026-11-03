@@ -4,22 +4,22 @@ set -e
 case "$1" in
     abort-install)
         # Undo preinst's placeholder if the install stopped before postinst removed it.
-        if [ -f /etc/nginx/sites-enabled/default ] && grep -q '^# certmgr placeholder' /etc/nginx/sites-enabled/default; then
+        if [ -f /etc/nginx/sites-enabled/default ] && grep -q '^# certhaven placeholder' /etc/nginx/sites-enabled/default; then
             rm -f /etc/nginx/sites-enabled/default
         fi
         ;;
     remove)
         # Without the app, the enabled site would only return errors.
-        rm -f /etc/nginx/sites-enabled/certmgr
+        rm -f /etc/nginx/sites-enabled/certhaven
         if [ -d /run/systemd/system ]; then
             systemctl daemon-reload || true
             systemctl reload nginx 2>/dev/null || true
         fi
         ;;
     purge)
-        rm -f /etc/nginx/sites-available/certmgr /etc/nginx/sites-enabled/certmgr
-        echo "certmgr: kept your CA data and backups. Delete them yourself only if you are sure:"
-        echo "certmgr:   /var/lib/certmgr  /var/backups/certmgr  /etc/certmgr"
+        rm -f /etc/nginx/sites-available/certhaven /etc/nginx/sites-enabled/certhaven
+        echo "certhaven: kept your CA data and backups. Delete them yourself only if you are sure:"
+        echo "certhaven:   /var/lib/certhaven  /var/backups/certhaven  /etc/certhaven"
         ;;
 esac
 

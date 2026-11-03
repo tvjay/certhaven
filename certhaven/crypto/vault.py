@@ -15,7 +15,7 @@ from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 
-_WRAP_AAD = b"certmgr-dek-v1"
+_WRAP_AAD = b"certmgr-dek-v1"  # kept from the old name: existing keys are sealed with it
 _DATA_AAD = b"certmgr-data-v1"
 
 

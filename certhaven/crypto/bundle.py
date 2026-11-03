@@ -16,9 +16,9 @@ SQLITE_HEADER = b"SQLite format 3\x00"
 def parse(data, password=None):
     """Return (private_keys, certificates, csrs) found in data."""
     if data.startswith(SQLITE_HEADER):
-        # A certmgr backup holds certificates as PEM text, which the scan below would pick out on
+        # A certhaven backup holds certificates as PEM text, which the scan below would pick out on
         # their own, without names or the (encrypted) private keys.
-        raise ValueError("This is a certmgr database backup, not a certificate file. "
+        raise ValueError("This is a certhaven database backup, not a certificate file. "
                          "To bring everything back, use Settings → Restore backup.")
     found_keys, found_certs, found_csrs = [], [], []
     blocks = list(_PEM_RE.finditer(data))

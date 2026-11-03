@@ -4,13 +4,13 @@ set -e
 case "$1" in
     remove|deconfigure)
         if [ -d /run/systemd/system ]; then
-            systemctl stop certmgr-notify.timer certmgr-backup.timer certmgr.service || true
-            systemctl disable --quiet certmgr.service certmgr-notify.timer certmgr-backup.timer || true
+            systemctl stop certhaven-notify.timer certhaven-backup.timer certhaven.service || true
+            systemctl disable --quiet certhaven.service certhaven-notify.timer certhaven-backup.timer || true
         fi
         ;;
 esac
 
 # Bytecode compiled by postinst; dpkg does not know about it.
-find /usr/lib/certmgr -name __pycache__ -type d -prune -exec rm -rf {} + 2>/dev/null || true
+find /usr/lib/certhaven -name __pycache__ -type d -prune -exec rm -rf {} + 2>/dev/null || true
 
 exit 0

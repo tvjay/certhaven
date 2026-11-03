@@ -1,10 +1,10 @@
 [Unit]
-Description=certmgr database backup
+Description=certhaven database backup
 After=local-fs.target
 
 [Service]
 Type=oneshot
-ExecStart=/usr/lib/certmgr/certmgr-backup
+ExecStart=/usr/lib/certhaven/certhaven-backup
 UMask=0077
 NoNewPrivileges=yes
 PrivateTmp=yes

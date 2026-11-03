@@ -3,8 +3,8 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from cryptography import x509
 
-from certmgr.crypto import bundle, certs, keys
-from certmgr.crypto.vault import Vault
+from certhaven.crypto import bundle, certs, keys
+from certhaven.crypto.vault import Vault
 
 
 def test_parse_sans_detects_types():

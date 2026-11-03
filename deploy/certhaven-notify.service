@@ -1,14 +1,14 @@
 [Unit]
-Description=certmgr email alerts (expiry, CRLs, failed logins)
+Description=certhaven email alerts (expiry, CRLs, failed logins)
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=oneshot
-User=certmgr
-Group=certmgr
-WorkingDirectory=/usr/lib/certmgr
-Environment=CERTMGR_DATA_DIR=/var/lib/certmgr
+User=certhaven
+Group=certhaven
+WorkingDirectory=/usr/lib/certhaven
+Environment=CERTHAVEN_DATA_DIR=/var/lib/certhaven
 ExecStart=/usr/bin/flask --app wsgi notify
 UMask=0077
 LimitCORE=0
@@ -18,7 +18,7 @@ PrivateTmp=yes
 PrivateDevices=yes
 ProtectSystem=strict
 ProtectHome=yes
-ReadWritePaths=/var/lib/certmgr
+ReadWritePaths=/var/lib/certhaven
 ProtectKernelTunables=yes
 ProtectKernelModules=yes
 ProtectControlGroups=yes

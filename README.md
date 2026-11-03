@@ -1,9 +1,9 @@
-# certmgr
+# certhaven
 
-[![Tests](https://github.com/tvjay/certmgr/actions/workflows/ci.yml/badge.svg)](https://github.com/tvjay/certmgr/actions/workflows/ci.yml)
+[![Tests](https://github.com/tvjay/certhaven/actions/workflows/ci.yml/badge.svg)](https://github.com/tvjay/certhaven/actions/workflows/ci.yml)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE)
 
-**A self-hosted private certificate authority with a web UI.** certmgr builds a CA hierarchy, issues and signs
+**A self-hosted private certificate authority with a web UI.** certhaven builds a CA hierarchy, issues and signs
 certificates, revokes them and publishes CRLs, all from a small web app on a Debian server, so a team shares one
 CA in the browser instead of passing key files around.
 
@@ -22,7 +22,7 @@ client certificates, all signed by a CA your devices trust.
 - **Issue from templates** — Root CA, Intermediate CA, TLS Server, TLS Client and Server + Client, or your own,
   with key usage, extended key usage, validity and subject defaults. RSA 2048/3072/4096, EC P-256/P-384, Ed25519.
 - **Sign CSRs** — paste or upload a CSR, review it, edit its SANs and sign it. The template decides what the
-  certificate may do, never the request. You can also create CSRs for keys kept in certmgr.
+  certificate may do, never the request. You can also create CSRs for keys kept in certhaven.
 - **Revocation and CRLs** — revoke with a reason code; the CA's CRL is re-signed straight away and served at a
   public URL that is written into every certificate (CRL distribution point and CA-issuer links).
 - **Export and import** — PEM, DER, full chain, PKCS#12; private keys plain or passphrase-protected. Import
@@ -41,7 +41,7 @@ client certificates, all signed by a CA your devices trust.
 | ![Certificate detail](docs/screenshots/certificate-detail.jpg) | ![Issue a certificate](docs/screenshots/issue.jpg) |
 | **Certificate detail**: extensions, chain, export, renew, revoke | **Issue** from a template, with hostnames and IPs as SANs |
 | ![Users and roles](docs/screenshots/users.jpg) | ![Email alerts](docs/screenshots/email-alerts.jpg) |
-| **Users** with Admin, Operator and Auditor roles | **Email alerts**, configured in the browser |
+| **Users** with Admin, Operator and Auditor roles, under Settings | **Email alerts**, configured in the browser |
 
 ![Audit log](docs/screenshots/audit-log.jpg)
 
@@ -79,30 +79,30 @@ admin-only unless it is explicitly granted to a lower role, so new features fail
 
 ## Install
 
-You need a **Debian 13 (trixie)** server, root access, and a DNS name for the server. certmgr ships as a Debian
+You need a **Debian 13 (trixie)** server, root access, and a DNS name for the server. certhaven ships as a Debian
 package that uses Debian's own Python libraries (Flask, SQLAlchemy, cryptography, gunicorn), so their security
 fixes arrive with normal system updates. Other distributions are not tested.
 
-Download the `.deb` and its checksum from the [latest release](https://github.com/tvjay/certmgr/releases/latest),
+Download the `.deb` and its checksum from the [latest release](https://github.com/tvjay/certhaven/releases/latest),
 check it, and install it (apt pulls in the dependencies):
 
 ```bash
-VERSION=0.9.7   # the latest release
-wget https://github.com/tvjay/certmgr/releases/download/v$VERSION/certmgr_${VERSION}-1_all.deb{,.sha256}
-sha256sum -c certmgr_${VERSION}-1_all.deb.sha256
-sudo apt install ./certmgr_${VERSION}-1_all.deb
+VERSION=0.10.0   # the latest release
+wget https://github.com/tvjay/certhaven/releases/download/v$VERSION/certhaven_${VERSION}-1_all.deb{,.sha256}
+sha256sum -c certhaven_${VERSION}-1_all.deb.sha256
+sudo apt install ./certhaven_${VERSION}-1_all.deb
 ```
 
 Or build the package yourself from a checkout (see [Development](#development)) and install the result the
 same way.
 
-The package creates the `certmgr` system user, keeps data in `/var/lib/certmgr` (mode 0700), creates a temporary
-TLS certificate and an nginx site, and starts `certmgr.service` (gunicorn on 127.0.0.1:8000) with the
+The package creates the `certhaven` system user, keeps data in `/var/lib/certhaven` (mode 0700), creates a temporary
+TLS certificate and an nginx site, and starts `certhaven.service` (gunicorn on 127.0.0.1:8000) with the
 email-alert and nightly-backup timers. Data, TLS files and your edits to the nginx site are never overwritten by
 upgrades. Install `unattended-upgrades` (recommended by the package) so security fixes are applied automatically.
 
-> On a host with IPv6 disabled, certmgr stops Debian's nginx package from enabling its stock site, which
-> listens on IPv6 and would fail to start. If nginx was installed and failed before certmgr, run `sudo rm /etc/nginx/sites-enabled/default` and then
+> On a host with IPv6 disabled, certhaven stops Debian's nginx package from enabling its stock site, which
+> listens on IPv6 and would fail to start. If nginx was installed and failed before certhaven, run `sudo rm /etc/nginx/sites-enabled/default` and then
 > `sudo dpkg --configure -a`.
 
 ### After installing
@@ -115,8 +115,8 @@ upgrades. Install `unattended-upgrades` (recommended by the package) so security
 2. Lock down the host. List the networks allowed to reach SSH and the admin UI:
 
    ```bash
-   sudo bash /usr/share/certmgr/firewall-ufw.sh "192.168.10.0/24"
-   sudo install -m 0644 /usr/share/certmgr/sshd-hardening.conf /etc/ssh/sshd_config.d/certmgr-hardening.conf
+   sudo bash /usr/share/certhaven/firewall-ufw.sh "192.168.10.0/24"
+   sudo install -m 0644 /usr/share/certhaven/sshd-hardening.conf /etc/ssh/sshd_config.d/certhaven-hardening.conf
    sudo sshd -t && sudo systemctl reload ssh
    ```
 
@@ -131,8 +131,8 @@ upgrades. Install `unattended-upgrades` (recommended by the package) so security
    download **Full chain PEM** and the key (Keys → Export), then:
 
    ```bash
-   sudo install -m 0644 fullchain.pem /etc/certmgr/tls/server.crt
-   sudo install -m 0600 server.key /etc/certmgr/tls/server.key
+   sudo install -m 0644 fullchain.pem /etc/certhaven/tls/server.crt
+   sudo install -m 0600 server.key /etc/certhaven/tls/server.key
    sudo nginx -t && sudo systemctl reload nginx
    ```
 
@@ -141,35 +141,39 @@ upgrades. Install `unattended-upgrades` (recommended by the package) so security
 5. **Install the full chain on every server.** When you put a certificate on a web server, use **Full chain
    PEM**, not the single certificate. Windows browsers fetch a missing intermediate on their own, but Firefox,
    Linux tools, Android and most scripts reject a server that sends only its own certificate.
-6. Set up **email alerts** under Settings, press **Send test email**, and add your team under **Users**.
+6. Set up **email alerts** under Settings, press **Send test email**, and add your team under **Settings → Users**.
 
 ## Operations
 
 ```bash
-sudo systemctl status certmgr certmgr-notify.timer certmgr-backup.timer
-sudo journalctl -u certmgr -f            # app log
-sudo journalctl -u certmgr-notify        # email alert runs
+sudo systemctl status certhaven certhaven-notify.timer certhaven-backup.timer
+sudo journalctl -u certhaven -f            # app log
+sudo journalctl -u certhaven-notify        # email alert runs
 ```
 
 - **Upgrade:** take a backup (Settings → Download backup), then download the new release's `.deb` and install
-  it the same way: `sudo apt install ./certmgr_<version>-1_all.deb`. Data, TLS files and email settings are
-  kept; database changes are applied automatically. Upgrading restarts certmgr, which locks the private keys
+  it the same way: `sudo apt install ./certhaven_<version>-1_all.deb`. Data, TLS files and email settings are
+  kept; database changes are applied automatically. Upgrading restarts certhaven, which locks the private keys
   until an admin or operator logs in. Settings → About shows the installed version.
+- **Moving from certmgr:** certhaven was called certmgr before 0.10.0. Take a backup, then install the certhaven
+  `.deb` as above. It removes the certmgr package and moves its data, TLS files, backups, nginx site and system
+  user to the certhaven names, keeping your accounts, keys and certificates. If you installed the SSH hardening
+  snippet, it keeps working under its old name, `/etc/ssh/sshd_config.d/certmgr-hardening.conf`.
 - **Restore a backup:** Settings → Backup → **Restore backup** (admins). It replaces everything on the server —
   users, private keys, certificates with their names, settings, audit log — with the backup, after saving the
-  current database as `/var/lib/certmgr/pre-restore-<time>.db`. Everyone is logged out; log in with an account
+  current database as `/var/lib/certhaven/pre-restore-<time>.db`. Everyone is logged out; log in with an account
   and password from the backup, which also unlocks its keys. Email settings are not part of backups. This is
-  also how to move certmgr to another server. (**Import** is for certificate and key files; it refuses a
-  backup.) Without the web UI: stop the service, copy the `.db` file to `/var/lib/certmgr/certmgr.db` (owner
-  `certmgr`, mode 0600) and start it again.
+  also how to move certhaven to another server. (**Import** is for certificate and key files; it refuses a
+  backup.) Without the web UI: stop the service, copy the `.db` file to `/var/lib/certhaven/certhaven.db` (owner
+  `certhaven`, mode 0600) and start it again.
 - **One worker only:** the unlocked key lives in a single process, so keep gunicorn at `--workers 1`
   (threads are fine).
-- **Email settings** are stored in `/var/lib/certmgr/notify.conf` (mode 0600), outside the database and its
+- **Email settings** are stored in `/var/lib/certhaven/notify.conf` (mode 0600), outside the database and its
   backups. The SMTP password there is not encrypted, because alerts must go out while the keys are locked; use
   an app password or a send-only relay account. Preview what would be sent:
 
   ```bash
-  sudo -u certmgr CERTMGR_DATA_DIR=/var/lib/certmgr flask --app /usr/lib/certmgr/wsgi notify --dry-run
+  sudo -u certhaven CERTHAVEN_DATA_DIR=/var/lib/certhaven flask --app /usr/lib/certhaven/wsgi notify --dry-run
   ```
 
 ## Development
@@ -178,10 +182,10 @@ sudo journalctl -u certmgr-notify        # email alert runs
 python3 -m venv .venv
 .venv/bin/pip install -r requirements-dev.txt
 .venv/bin/pytest
-CERTMGR_INSECURE_COOKIES=1 CERTMGR_DATA_DIR=./instance .venv/bin/python wsgi.py
+CERTHAVEN_INSECURE_COOKIES=1 CERTHAVEN_DATA_DIR=./instance .venv/bin/python wsgi.py
 ```
 
-The dev server listens on http://127.0.0.1:8000. `CERTMGR_INSECURE_COOKIES=1` allows the session cookie over
+The dev server listens on http://127.0.0.1:8000. `CERTHAVEN_INSECURE_COOKIES=1` allows the session cookie over
 plain http; never set it in production. The tests cover the crypto, every role's permissions, and end-to-end
 flows whose chains are verified with `cryptography`'s X.509 path validator.
 
@@ -189,17 +193,17 @@ flows whose chains are verified with `cryptography`'s X.509 path validator.
 libraries, which the test suite also passes against.
 
 To build the Debian package on any Debian or Ubuntu machine (needs only `dpkg-deb`), bump `__version__` in
-`certmgr/__init__.py`, add an entry to `packaging/debian/changelog`, then:
+`certhaven/__init__.py`, add an entry to `packaging/debian/changelog`, then:
 
 ```bash
-bash packaging/build-deb.sh        # writes dist/certmgr_<version>-1_all.deb
+bash packaging/build-deb.sh        # writes dist/certhaven_<version>-1_all.deb
 ```
 
 GitHub Actions runs the tests on every push and pull request. Pushing a tag such as `v0.9.4` builds the
 package and publishes it, with its checksum, as a GitHub release.
 
 ```
-certmgr/
+certhaven/
   crypto/       keys, certificates, CSRs, CRLs, import/PKCS#12, vault (key encryption)
   accounts.py   users, password checks and key wrapping
   notify.py     email alerts
@@ -222,17 +226,17 @@ would notice.
 
 ## Security
 
-certmgr holds the keys to your CA, so please report vulnerabilities privately, as described in
+certhaven holds the keys to your CA, so please report vulnerabilities privately, as described in
 [SECURITY.md](SECURITY.md), rather than in a public issue.
 
 ## License
 
-certmgr is free software under the [GNU Affero General Public License v3.0 or later](LICENSE) (AGPL).
+certhaven is free software under the [GNU Affero General Public License v3.0 or later](LICENSE) (AGPL).
 
-The AGPL keeps certmgr open wherever it runs: if you modify it and let other people use your version over a
+The AGPL keeps certhaven open wherever it runs: if you modify it and let other people use your version over a
 network, you must offer them its source code. Every page links to the source (the **Source code** link at the
 bottom). If you run a modified version, point that link at your own code by changing `SOURCE_URL` in
-`certmgr/__init__.py`. Using certmgr unmodified carries no extra obligations.
+`certhaven/__init__.py`. Using certhaven unmodified carries no extra obligations.
 
 Built with [Flask](https://flask.palletsprojects.com/), [SQLAlchemy](https://www.sqlalchemy.org/) and
 [cryptography](https://cryptography.io/).

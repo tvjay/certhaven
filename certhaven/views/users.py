@@ -15,8 +15,8 @@ def _render_form(user=None, values=None):
 
 @bp.route("/users")
 def index():
-    rows = db.session.scalars(db.select(User).order_by(User.username)).all()
-    return render_template("user_list.html", rows=rows, role_descriptions=ROLE_DESCRIPTIONS)
+    # Users are managed on Settings; this keeps old links and bookmarks working.
+    return redirect(url_for("main.settings", _anchor="users"))
 
 
 @bp.route("/users/new", methods=["GET", "POST"])
@@ -40,7 +40,7 @@ def new():
         db.session.commit()
         flash(f"Created {username}. Give them the temporary password; they must change it at first login.",
               "success")
-        return redirect(url_for(".index"))
+        return redirect(url_for("main.settings", _anchor="users"))
     return _render_form(values={"role": "operator"})
 
 
@@ -87,7 +87,7 @@ def edit(id):
             services.audit("user_update", f"{user.username}: {', '.join(changes)}")
             db.session.commit()
             flash(f"Updated {user.username}: {', '.join(changes)}.", "success")
-        return redirect(url_for(".index"))
+        return redirect(url_for("main.settings", _anchor="users"))
     return _render_form(user, values={"role": user.role, "disabled": user.disabled})
 
 
@@ -103,4 +103,4 @@ def delete(id):
         db.session.delete(user)
         db.session.commit()
         flash(f"Deleted {user.username}. Their audit log entries are kept.", "success")
-    return redirect(url_for(".index"))
+    return redirect(url_for("main.settings", _anchor="users"))

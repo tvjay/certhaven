@@ -1,11 +1,11 @@
 #!/bin/sh
-# certmgr postinst: user, data directory, TLS, nginx site, services.
+# certhaven postinst: user, data directory, TLS, nginx site, services.
 # Never overwrites data, TLS files or an nginx site the admin may have edited.
 set -e
 
-APP=/usr/lib/certmgr
-TLS_DIR=/etc/certmgr/tls
-SITE=/etc/nginx/sites-available/certmgr
+APP=/usr/lib/certhaven
+TLS_DIR=/etc/certhaven/tls
+SITE=/etc/nginx/sites-available/certhaven
 
 make_temporary_tls() {
     [ -f "$TLS_DIR/server.crt" ] && return 0
@@ -15,62 +15,96 @@ make_temporary_tls() {
         -subj "/CN=$fqdn" -addext "subjectAltName=DNS:$fqdn" \
         -keyout "$TLS_DIR/server.key" -out "$TLS_DIR/server.crt" 2>/dev/null
     chmod 0600 "$TLS_DIR/server.key"
-    echo "certmgr: created a temporary 30-day self-signed certificate for the admin UI."
+    echo "certhaven: created a temporary 30-day self-signed certificate for the admin UI."
 }
 
 install_nginx_site() {
     if [ ! -e "$SITE" ]; then
-        cp /usr/share/certmgr/nginx-certmgr.conf "$SITE"
+        cp /usr/share/certhaven/nginx-certhaven.conf "$SITE"
         if [ ! -e /proc/net/if_inet6 ]; then
             sed -i '/listen \[::\]/d' "$SITE"   # IPv6 disabled on this host
         fi
     fi
-    if [ ! -e /etc/nginx/sites-enabled/certmgr ]; then
-        ln -s "$SITE" /etc/nginx/sites-enabled/certmgr
+    if [ ! -e /etc/nginx/sites-enabled/certhaven ]; then
+        ln -s "$SITE" /etc/nginx/sites-enabled/certhaven
         # The stock site also claims default_server on ports 80/443.
         if [ -L /etc/nginx/sites-enabled/default ]; then
             rm -f /etc/nginx/sites-enabled/default
-            echo "certmgr: disabled the nginx default site (it conflicts with certmgr's)."
+            echo "certhaven: disabled the nginx default site (it conflicts with certhaven's)."
         fi
     fi
     # Left by preinst on IPv6-disabled hosts so nginx would not enable its stock site.
-    if [ -f /etc/nginx/sites-enabled/default ] && grep -q '^# certmgr placeholder' /etc/nginx/sites-enabled/default; then
+    if [ -f /etc/nginx/sites-enabled/default ] && grep -q '^# certhaven placeholder' /etc/nginx/sites-enabled/default; then
         rm -f /etc/nginx/sites-enabled/default
     fi
 }
 
+# certhaven was called certmgr. Installing it removes the certmgr package (Conflicts), which
+# stops its services and disables its nginx site but keeps its data; move that data over.
+migrate_from_certmgr() {
+    [ -d /var/lib/certmgr ] && [ ! -e /var/lib/certhaven ] || return 0
+    echo "certhaven: moving the certmgr installation to certhaven..."
+    # Renaming the account keeps its UID, so file ownership carries over unchanged.
+    if getent passwd certmgr >/dev/null && ! getent passwd certhaven >/dev/null; then
+        usermod -l certhaven -d /var/lib/certhaven certmgr
+        groupmod -n certhaven certmgr 2>/dev/null || true
+    fi
+    mv /var/lib/certmgr /var/lib/certhaven
+    for suffix in "" -wal -shm; do
+        if [ -e "/var/lib/certhaven/certmgr.db$suffix" ]; then
+            mv "/var/lib/certhaven/certmgr.db$suffix" "/var/lib/certhaven/certhaven.db$suffix"
+        fi
+    done
+    if [ -d /etc/certmgr ] && [ ! -e /etc/certhaven ]; then
+        mv /etc/certmgr /etc/certhaven
+    fi
+    if [ -d /var/backups/certmgr ] && [ ! -e /var/backups/certhaven ]; then
+        mv /var/backups/certmgr /var/backups/certhaven
+        for f in /var/backups/certhaven/certmgr-*.db; do
+            [ -e "$f" ] && mv "$f" "/var/backups/certhaven/certhaven-${f##*/certmgr-}"
+        done
+    fi
+    # Keep any edits the admin made to the old site, such as their own certificate paths.
+    if [ -f /etc/nginx/sites-available/certmgr ] && [ ! -e "$SITE" ]; then
+        sed 's#/etc/certmgr/#/etc/certhaven/#g; s/certmgr/certhaven/g' /etc/nginx/sites-available/certmgr > "$SITE"
+        rm -f /etc/nginx/sites-available/certmgr /etc/nginx/sites-enabled/certmgr
+    fi
+    echo "certhaven: moved the data, TLS files, backups and nginx site from certmgr."
+}
+
 case "$1" in
     configure)
-        if ! getent passwd certmgr >/dev/null; then
-            adduser --system --group --home /var/lib/certmgr --no-create-home \
-                    --shell /usr/sbin/nologin --quiet certmgr
+        migrate_from_certmgr
+        if ! getent passwd certhaven >/dev/null; then
+            adduser --system --group --home /var/lib/certhaven --no-create-home \
+                    --shell /usr/sbin/nologin --quiet certhaven
         fi
-        install -d -o certmgr -g certmgr -m 0700 /var/lib/certmgr
+        install -d -o certhaven -g certhaven -m 0700 /var/lib/certhaven
         make_temporary_tls
         install_nginx_site
-        python3 -m compileall -q "$APP/certmgr" >/dev/null || true
+        python3 -m compileall -q "$APP/certhaven" >/dev/null || true
 
         if [ -d /run/systemd/system ]; then
             systemctl daemon-reload
-            systemctl enable --quiet certmgr.service certmgr-notify.timer certmgr-backup.timer
+            systemctl enable --quiet certhaven.service certhaven-notify.timer certhaven-backup.timer
             # Restart, not start: on an upgrade the old code is still running.
-            if systemctl is-active --quiet certmgr.service; then
-                systemctl restart certmgr.service
-                echo "certmgr: restarted; the private keys are locked until an admin or operator logs in."
+            if systemctl is-active --quiet certhaven.service; then
+                systemctl restart certhaven.service
+                echo "certhaven: restarted; the private keys are locked until an admin or operator logs in."
             else
-                systemctl start certmgr.service
+                systemctl start certhaven.service
             fi
-            systemctl start certmgr-notify.timer certmgr-backup.timer
+            systemctl start certhaven-notify.timer certhaven-backup.timer
             if nginx -t >/dev/null 2>&1; then
                 systemctl reload-or-restart nginx
             else
-                echo "certmgr: nginx configuration test failed; run 'nginx -t' to see why." >&2
+                echo "certhaven: nginx configuration test failed; run 'nginx -t' to see why." >&2
             fi
         fi
 
-        if [ ! -s /var/lib/certmgr/certmgr.db ]; then
+        if [ ! -s /var/lib/certhaven/certhaven.db ]; then
             fqdn=$(hostname -f 2>/dev/null || hostname)
-            echo "certmgr: open https://$fqdn/ to create the first admin account."
+            echo "certhaven: open https://$fqdn/ to create the first admin account."
         fi
         ;;
 esac

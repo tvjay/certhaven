@@ -1,15 +1,17 @@
-Package: certmgr
+Package: certhaven
 Version: @VERSION@
 Section: admin
 Priority: optional
 Architecture: all
 Maintainer: tvjay <11197859+tvjay@users.noreply.github.com>
-Homepage: https://github.com/tvjay/certmgr
+Homepage: https://github.com/tvjay/certhaven
 Installed-Size: @SIZE@
 Depends: python3 (>= 3.11), python3-flask (>= 3.0), python3-flask-sqlalchemy (>= 3.1), python3-sqlalchemy (>= 2.0), python3-cryptography (>= 42), python3-werkzeug (>= 3.0), python3-click, python3-markupsafe, gunicorn (>= 22), nginx, openssl, adduser, systemd
 Recommends: unattended-upgrades, ufw
+Conflicts: certmgr
+Replaces: certmgr
 Description: self-hosted private certificate authority with a web UI
- certmgr is a certificate manager that runs as a web application.
+ certhaven is a certificate manager that runs as a web application.
  It builds root and intermediate CA hierarchies, issues certificates from
  templates, signs CSRs, revokes certificates and publishes CRLs at public
  URLs, and imports and exports PEM, DER and PKCS#12.
@@ -19,5 +21,5 @@ Description: self-hosted private certificate authority with a web UI
  key holder's password. Email alerts warn about expiring certificates, CRLs
  and failed logins.
  .
- The package runs certmgr under gunicorn behind nginx, with sandboxed
+ The package runs certhaven under gunicorn behind nginx, with sandboxed
  systemd units, a nightly backup timer and an email-alert timer.

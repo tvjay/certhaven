@@ -2,9 +2,9 @@ import re
 
 import pytest
 
-from certmgr import create_app, security
-from certmgr.crypto.vault import Vault
-from certmgr.models import Certificate, Template, db
+from certhaven import create_app, security
+from certhaven.crypto.vault import Vault
+from certhaven.models import Certificate, Template, db
 
 PASSWORD = "correct horse battery staple"
 TEMP = "temporary password 123"

@@ -37,7 +37,7 @@ jobs:
         run: for f in *.deb; do sha256sum "$f" > "$f.sha256"; cat "$f.sha256"; done
       - uses: actions/upload-artifact@v4
         with:
-          name: certmgr-deb
+          name: certhaven-deb
           path: dist/
 
   release:
@@ -50,11 +50,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
-          name: certmgr-deb
+          name: certhaven-deb
           path: dist
       - name: Check the tag matches the version in the code
         run: |
-          code=$(python3 -c 'import re; print(re.search(r"__version__ = \"([^\"]+)\"", open("certmgr/__init__.py").read()).group(1))')
+          code=$(python3 -c 'import re; print(re.search(r"__version__ = \"([^\"]+)\"", open("certhaven/__init__.py").read()).group(1))')
           test "${GITHUB_REF_NAME#v}" = "$code" || { echo "Tag $GITHUB_REF_NAME does not match __version__ $code"; exit 1; }
       - name: Release notes from the changelog
         run: |
@@ -70,9 +70,9 @@ jobs:
           On Debian 13 (trixie):
 
           ```bash
-          wget https://github.com/${{ github.repository }}/releases/download/v{version}/certmgr_{version}-1_all.deb{{,.sha256}}
-          sha256sum -c certmgr_{version}-1_all.deb.sha256
-          sudo apt install ./certmgr_{version}-1_all.deb
+          wget https://github.com/${{ github.repository }}/releases/download/v{version}/certhaven_{version}-1_all.deb{{,.sha256}}
+          sha256sum -c certhaven_{version}-1_all.deb.sha256
+          sudo apt install ./certhaven_{version}-1_all.deb
           ```
 
           See the README for first-time setup.""")
@@ -81,4 +81,4 @@ jobs:
       - name: Publish
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" dist/*.deb dist/*.sha256 --title "certmgr ${GITHUB_REF_NAME#v}" --notes-file notes.md
+        run: gh release create "$GITHUB_REF_NAME" dist/*.deb dist/*.sha256 --title "certhaven ${GITHUB_REF_NAME#v}" --notes-file notes.md

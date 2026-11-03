@@ -8,11 +8,11 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .models import db, upgrade_schema
 
-__version__ = "0.9.7"
+__version__ = "0.10.0"
 
-# Where users of this instance can get its source code, linked from every page. certmgr is licensed under
+# Where users of this instance can get its source code, linked from every page. certhaven is licensed under
 # the AGPL: if you run a modified version for others, point this at the source of your version.
-SOURCE_URL = "https://github.com/tvjay/certmgr"
+SOURCE_URL = "https://github.com/tvjay/certhaven"
 LICENSE_NAME = "AGPL-3.0-or-later"
 
 
@@ -39,27 +39,27 @@ def _secret_key(data_dir):
 def create_app(config=None):
     app = Flask(__name__)
     config = config or {}
-    data_dir = config.get("DATA_DIR") or os.environ.get("CERTMGR_DATA_DIR") or app.instance_path
+    data_dir = config.get("DATA_DIR") or os.environ.get("CERTHAVEN_DATA_DIR") or app.instance_path
     os.makedirs(data_dir, exist_ok=True)
 
     app.config.update(
         DATA_DIR=data_dir,
-        DB_PATH=os.path.join(data_dir, "certmgr.db"),
+        DB_PATH=os.path.join(data_dir, "certhaven.db"),
         SECRET_KEY=_secret_key(data_dir),
-        SESSION_COOKIE_NAME="certmgr_session",
+        SESSION_COOKIE_NAME="certhaven_session",
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Lax",
-        # Set CERTMGR_INSECURE_COOKIES=1 only for local development over plain http.
-        SESSION_COOKIE_SECURE=os.environ.get("CERTMGR_INSECURE_COOKIES") != "1",
+        # Set CERTHAVEN_INSECURE_COOKIES=1 only for local development over plain http.
+        SESSION_COOKIE_SECURE=os.environ.get("CERTHAVEN_INSECURE_COOKIES") != "1",
         MAX_CONTENT_LENGTH=2 * 1024 * 1024,
-        NOTIFY_CONF=os.environ.get("CERTMGR_NOTIFY_CONF", os.path.join(data_dir, "notify.conf")),
+        NOTIFY_CONF=os.environ.get("CERTHAVEN_NOTIFY_CONF", os.path.join(data_dir, "notify.conf")),
     )
     app.config.update(config)
     app.config.setdefault("SQLALCHEMY_DATABASE_URI", "sqlite:///" + app.config["DB_PATH"])
 
     # gunicorn listens on 127.0.0.1 behind nginx, which overwrites X-Forwarded-For/-Proto.
     # X-Forwarded-Host is not trusted: nginx passes it through from clients unchanged.
-    if os.environ.get("CERTMGR_BEHIND_PROXY", "1") == "1":
+    if os.environ.get("CERTHAVEN_BEHIND_PROXY", "1") == "1":
         app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
 
     db.init_app(app)

@@ -1,3 +1,12 @@
+certhaven (0.10.0-1) trixie; urgency=medium
+
+  * Renamed from certmgr to certhaven. Installing the package removes certmgr
+    and moves its data, TLS files, backups, nginx site and user over.
+  * New logo: a roof over the shield.
+  * Users moved from the top menu to Settings.
+
+ -- tvjay <11197859+tvjay@users.noreply.github.com>  Mon, 02 Nov 2026 10:31:34 -0500
+
 certmgr (0.9.7-1) trixie; urgency=medium
 
   * A logo next to the name in the header and on the login page, also used

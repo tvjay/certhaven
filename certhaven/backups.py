@@ -15,7 +15,7 @@ from .crypto.bundle import SQLITE_HEADER
 from .models import db, upgrade_schema, utcnow
 from .security import MAX_RESTORE_SIZE, reset_failures, vault
 
-# A backup must hold at least these tables to be a certmgr database.
+# A backup must hold at least these tables to be a certhaven database.
 REQUIRED_TABLES = {"certificates", "keys", "settings"}
 
 
@@ -42,7 +42,7 @@ def _copy(src_path, dst_path):
 
 
 def check(path):
-    """Raise ValueError unless path is an intact certmgr database someone can log in to."""
+    """Raise ValueError unless path is an intact certhaven database someone can log in to."""
     try:
         con = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
         try:
@@ -50,7 +50,7 @@ def check(path):
                 raise ValueError("The backup file is damaged (SQLite integrity check failed).")
             tables = {row[0] for row in con.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
             if not REQUIRED_TABLES <= tables:
-                raise ValueError("That SQLite file is not a certmgr backup.")
+                raise ValueError("That SQLite file is not a certhaven backup.")
             users = con.execute("SELECT COUNT(*) FROM users").fetchone()[0] if "users" in tables else 0
             legacy_admin = con.execute("SELECT COUNT(*) FROM settings WHERE name = 'vault'").fetchone()[0]
             if not users and not legacy_admin:
@@ -58,14 +58,14 @@ def check(path):
         finally:
             con.close()
     except sqlite3.DatabaseError:
-        raise ValueError("That file is not a certmgr backup.")
+        raise ValueError("That file is not a certhaven backup.")
 
 
 def restore(data):
     """Replace the live database with the backup in data (bytes). Returns the path of the copy of
     the previous database. Ends every session and locks the private keys."""
     if len(data) > MAX_RESTORE_SIZE or not data.startswith(SQLITE_HEADER):
-        raise ValueError("Choose a certmgr backup file (.db), as downloaded from Settings.")
+        raise ValueError("Choose a certhaven backup file (.db), as downloaded from Settings.")
     data_dir = current_app.config["DATA_DIR"]
     db_path = current_app.config["DB_PATH"]
     fd, upload = tempfile.mkstemp(dir=data_dir, prefix=".restore-", suffix=".db")
@@ -90,7 +90,7 @@ def restore(data):
     upgrade_schema()       # and anything else older versions lack
     vault.lock()           # the data key may differ; each user unlocks with the backup's passwords
     reset_failures()
-    current_app.extensions.pop("certmgr_configured", None)
+    current_app.extensions.pop("certhaven_configured", None)
     _rotate_secret_key(data_dir)
     return saved
 

@@ -1,5 +1,5 @@
 [Unit]
-Description=Daily certmgr database backup
+Description=Daily certhaven database backup
 
 [Timer]
 OnCalendar=daily

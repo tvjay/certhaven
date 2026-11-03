@@ -115,7 +115,7 @@ def save_config(values):
     """Validate and write the settings file atomically with mode 0600."""
     clean = validate(values)
     path = current_app.config["NOTIFY_CONF"]
-    lines = ["# certmgr email alerts. Managed from Settings in the web UI."]
+    lines = ["# certhaven email alerts. Managed from Settings in the web UI."]
     lines += [f'{key}="{clean[key]}"' for key in FIELDS]
     fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path) or ".", prefix=".notify-")
     try:
@@ -153,7 +153,7 @@ def send_email(cfg, subject, body):
     port = int(cfg.get("SMTP_PORT") or {"ssl": 465, "starttls": 587, "none": 25}[security])
     msg = EmailMessage()
     msg["Subject"] = subject
-    msg["From"] = cfg.get("MAIL_FROM") or cfg.get("SMTP_USER") or f"certmgr@{hostname()}"
+    msg["From"] = cfg.get("MAIL_FROM") or cfg.get("SMTP_USER") or f"certhaven@{hostname()}"
     msg["To"] = ", ".join(recipients(cfg))
     msg.set_content(body)
     context = ssl.create_default_context()
@@ -225,7 +225,7 @@ def collect(now, state):
             continue
         key = f"crl:{ca.id}:{crl.number}:{kind}"
         if key not in sent:
-            alerts.append((key, "Revocation lists", text + ". Log in to certmgr to re-sign it."))
+            alerts.append((key, "Revocation lists", text + ". Log in to certhaven to re-sign it."))
 
     newest = db.session.scalar(db.select(db.func.max(AuditLog.id))) or 0
     last = state.get("last_audit_id")
@@ -254,7 +254,7 @@ def _subject(alerts):
         parts.append(f"{counts['Revocation lists']} CRL{'s' if counts['Revocation lists'] != 1 else ''} due")
     if counts["Failed logins"]:
         parts.append("failed logins")
-    return "[certmgr] " + ", ".join(parts)
+    return "[certhaven] " + ", ".join(parts)
 
 
 def _body(cfg, alerts):
@@ -264,8 +264,8 @@ def _body(cfg, alerts):
         if items:
             lines += [section, "-" * len(section)] + [f"- {t}" for t in items] + [""]
     if cfg.get("ADMIN_URL"):
-        lines.append(f"Open certmgr: {cfg['ADMIN_URL']}")
-    lines.append(f"Sent by certmgr on {hostname()}. Times are UTC.")
+        lines.append(f"Open certhaven: {cfg['ADMIN_URL']}")
+    lines.append(f"Sent by certhaven on {hostname()}. Times are UTC.")
     return "\n".join(lines)
 
 
@@ -322,8 +322,8 @@ def send_test():
     cfg = load_config()
     if cfg is None:
         raise ValueError("Email is not configured. Enter an SMTP server and recipient under Settings.")
-    send_email(cfg, "[certmgr] Test notification",
-               f"This is a test from certmgr on {hostname()}.\n"
+    send_email(cfg, "[certhaven] Test notification",
+               f"This is a test from certhaven on {hostname()}.\n"
                "Alerts for certificate expiry, CRLs and failed logins will be sent to this address.")
     return recipients(cfg)
 

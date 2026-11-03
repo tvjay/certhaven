@@ -1,5 +1,5 @@
 [Unit]
-Description=Run certmgr email alert checks every 15 minutes
+Description=Run certhaven email alert checks every 15 minutes
 
 [Timer]
 OnCalendar=*:0/15

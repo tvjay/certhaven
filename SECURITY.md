@@ -1,10 +1,10 @@
 # Security policy
 
-certmgr holds the private keys of a certificate authority, so security problems matter more than most bugs.
+certhaven holds the private keys of a certificate authority, so security problems matter more than most bugs.
 
 ## Supported versions
 
-Only the latest release gets security fixes. certmgr is maintained by one person in their spare time; there are
+Only the latest release gets security fixes. certhaven is maintained by one person in their spare time; there are
 no backports to older versions.
 
 ## Reporting a vulnerability
@@ -21,7 +21,7 @@ unless you prefer not to be.
 
 ## Scope
 
-In scope: the certmgr web application, its Debian package and maintainer scripts, and the shipped deployment
+In scope: the certhaven web application, its Debian package and maintainer scripts, and the shipped deployment
 files (systemd units, nginx site, firewall and SSH snippets).
 
 Out of scope: weaknesses that need an attacker who already has root on the server, or an admin account (admins

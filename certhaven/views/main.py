@@ -5,7 +5,8 @@ from flask import Blueprint, current_app, flash, redirect, render_template, requ
 from sqlalchemy.orm import selectinload
 
 from .. import __version__, accounts, backups, build_date, notify, services
-from ..models import CSR, TIME_DISPLAYS, AuditLog, Certificate, Key, db, get_setting, set_setting, utcnow
+from ..models import (CSR, ROLE_DESCRIPTIONS, TIME_DISPLAYS, AuditLog, Certificate, Key, User, db, get_setting,
+                      set_setting, utcnow)
 from ..security import current_user
 from . import download
 
@@ -74,6 +75,8 @@ def settings():
                            idle_timeout=get_setting("idle_timeout", "30"),
                            crl_days=get_setting("crl_days", "30"), notify=notify.summary(),
                            time_display=get_setting("time_display", "utc"), time_displays=TIME_DISPLAYS,
+                           users=db.session.scalars(db.select(User).order_by(User.username)).all(),
+                           role_descriptions=ROLE_DESCRIPTIONS,
                            version=__version__, build_date=build_date())
 
 
@@ -141,7 +144,7 @@ def backup():
     data = backups.serialize(current_app.config["DB_PATH"])
     services.audit("backup")
     db.session.commit()
-    return download(data, f"certmgr-backup-{utcnow():%Y%m%d-%H%M}.db", "application/vnd.sqlite3")
+    return download(data, f"certhaven-backup-{utcnow():%Y%m%d-%H%M}.db", "application/vnd.sqlite3")
 
 
 @bp.post("/settings/restore")
