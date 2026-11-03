@@ -52,6 +52,7 @@ MAX_FAILURES = 5
 FAILURE_WINDOW = 15 * 60
 _failures = {}
 _failures_lock = threading.Lock()
+_last_sweep = 0.0
 
 # Each password check runs scrypt with ~128 MB of memory; cap how many run at once.
 unlock_slots = threading.BoundedSemaphore(2)
@@ -69,10 +70,23 @@ def _recent_failures(ip):
     return times
 
 
+def _sweep(now):
+    """Drop every address with no attempts inside the window. Without this, an address that
+    failed once and never came back would stay in the table for good."""
+    global _last_sweep
+    if now - _last_sweep < 60:
+        return
+    _last_sweep = now
+    cutoff = now - FAILURE_WINDOW
+    for ip in [ip for ip, times in _failures.items() if not times or times[-1] <= cutoff]:
+        del _failures[ip]
+
+
 def register_attempt(ip):
     """Count a login attempt before the password is checked, so parallel requests
     cannot all slip past the limit. Returns False if the IP is over the limit."""
     with _failures_lock:
+        _sweep(time.monotonic())
         times = _recent_failures(ip)
         if len(times) >= MAX_FAILURES:
             return False

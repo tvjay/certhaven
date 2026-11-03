@@ -7,6 +7,7 @@ from datetime import timedelta
 
 from cryptography.hazmat.primitives import hashes, serialization
 from flask import g, has_app_context, has_request_context, request
+from sqlalchemy.orm import selectinload
 
 from .crypto import certs as certlib
 from .crypto import crl as crllib
@@ -15,7 +16,8 @@ from .crypto import keys as keylib
 from .models import CRL, CSR, AuditLog, Certificate, Key, Template, db, get_setting, utcnow
 from .security import vault
 
-CRL_REFRESH_MARGIN = timedelta(days=7)
+# A CRL this close to its next update is due: re-signed at unlock, flagged on the dashboard and in alerts.
+CRL_DUE_MARGIN = timedelta(days=7)
 CRLS_KEPT = 5
 MAX_VALIDITY_DAYS = 36500
 
@@ -150,10 +152,13 @@ def chain(row):
     return out
 
 
-def signing_cas():
-    rows = db.session.scalars(db.select(Certificate).filter(
-        Certificate.is_ca, Certificate.key_id.isnot(None)).order_by(db.func.lower(Certificate.name)))
-    return [r for r in rows if r.status == "valid"]
+def signing_cas(with_crls=False):
+    """Valid CAs whose private key is in the database. with_crls loads their CRLs in one query."""
+    stmt = db.select(Certificate).filter(Certificate.is_ca, Certificate.key_id.isnot(None)).order_by(
+        db.func.lower(Certificate.name))
+    if with_crls:
+        stmt = stmt.options(selectinload(Certificate.crls))
+    return [r for r in db.session.scalars(stmt) if r.status == "valid"]
 
 
 def _base_url():
@@ -267,27 +272,31 @@ def regenerate_crl(ca_row):
     return row
 
 
+def crl_due(ca, now):
+    """True when ca has no CRL yet or its latest one expires within CRL_DUE_MARGIN."""
+    latest = ca.latest_crl
+    return latest is None or latest.next_update - now < CRL_DUE_MARGIN
+
+
 def refresh_due_crls():
-    """Re-sign CRLs that are missing or expire within the margin. Returns count."""
-    count = 0
-    for ca in signing_cas():
-        latest = ca.latest_crl
-        if latest is None or latest.next_update - utcnow() < CRL_REFRESH_MARGIN:
-            regenerate_crl(ca)
-            count += 1
-    return count
+    """Re-sign CRLs that are missing or due. Returns count."""
+    now = utcnow()
+    due = [ca for ca in signing_cas() if crl_due(ca, now)]
+    for ca in due:
+        regenerate_crl(ca)
+    return len(due)
 
 
 # --- CSRs -----------------------------------------------------------------
 
 def save_csr(csr, name=None):
     pem = csr.public_bytes(serialization.Encoding.PEM).decode()
-    existing = db.session.scalar(db.select(CSR).filter_by(pem=pem))
+    pubkey_fp = keylib.fingerprint(csr.public_key())
+    existing = db.session.scalar(db.select(CSR).filter_by(pubkey_fp=pubkey_fp, pem=pem))
     if existing:
         return existing, False
     if not csr.is_signature_valid:
         raise ValueError("The CSR signature is invalid.")
-    pubkey_fp = keylib.fingerprint(csr.public_key())
     row = CSR(name=name or certlib.common_name(csr.subject) or "CSR", pem=pem,
               subject=certlib.name_text(csr.subject), pubkey_fp=pubkey_fp,
               key=_key_with_fingerprint(pubkey_fp))

@@ -65,10 +65,13 @@
       </div>
     </div>
     <div class="grid">
+      <label>Sender name <input name="mail_from_name" value="{{ v.MAIL_FROM_NAME }}" maxlength="100"
+             placeholder="{{ notify.default_from_name }}">
+        <small>What mail clients show as the sender.</small></label>
       <label>From address <input name="mail_from" value="{{ v.MAIL_FROM }}" placeholder="certhaven@example.com"></label>
-      <label>Send alerts to <input name="mail_to" value="{{ v.MAIL_TO }}" placeholder="you@example.com, ops@example.com">
-        <small>Separate several addresses with commas.</small></label>
     </div>
+    <label>Send alerts to <input name="mail_to" value="{{ v.MAIL_TO }}" placeholder="you@example.com, ops@example.com">
+      <small>Separate several addresses with commas.</small></label>
     <label>Link in emails (optional) <input name="admin_url" value="{{ v.ADMIN_URL }}" placeholder="https://pki.example.internal/"></label>
     <p class="small muted">Stored on the server outside the database and its backups, readable only by certhaven. The
       password is not encrypted, because alerts must be sent while certhaven is locked.</p>

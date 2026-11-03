@@ -86,7 +86,7 @@ Download the `.deb` and its checksum from the [latest release](https://github.co
 check it, and install it (apt pulls in the dependencies):
 
 ```bash
-VERSION=0.10.0   # the latest release
+VERSION=0.10.1   # the latest release
 wget https://github.com/tvjay/certhaven/releases/download/v$VERSION/certhaven_${VERSION}-1_all.deb{,.sha256}
 sha256sum -c certhaven_${VERSION}-1_all.deb.sha256
 sudo apt install ./certhaven_${VERSION}-1_all.deb

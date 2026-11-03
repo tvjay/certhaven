@@ -17,6 +17,7 @@ import ssl
 from collections import defaultdict
 from datetime import datetime, timedelta
 from email.message import EmailMessage
+from email.utils import formataddr
 from functools import lru_cache
 
 import click
@@ -24,10 +25,10 @@ from flask import current_app
 from sqlalchemy.orm import selectinload
 
 from .models import AuditLog, Certificate, db, get_setting, set_setting, utcnow
+from .services import CRL_DUE_MARGIN
 
 EXPIRY_THRESHOLDS = (1, 7, 14, 30)
 EXPIRED_GRACE = timedelta(days=7)   # still report certificates that expired this recently
-CRL_DUE = timedelta(days=7)
 STATE_RETENTION = timedelta(days=400)
 
 
@@ -39,7 +40,9 @@ def hostname():
 # --- configuration --------------------------------------------------------
 
 FIELDS = ("SMTP_HOST", "SMTP_PORT", "SMTP_SECURITY", "SMTP_USER", "SMTP_PASSWORD",
-          "MAIL_FROM", "MAIL_TO", "ADMIN_URL")
+          "MAIL_FROM", "MAIL_FROM_NAME", "MAIL_TO", "ADMIN_URL")
+# Shown as the sender in mail clients when MAIL_FROM_NAME is empty.
+DEFAULT_FROM_NAME = "certhaven"
 SECURITY_MODES = ("starttls", "ssl", "none")
 # Mail ports only, so the SMTP setting cannot be used to probe other services from the server.
 SMTP_PORTS = (25, 465, 587, 2525)
@@ -87,6 +90,8 @@ def validate(values):
             raise ValueError("Settings cannot contain line breaks.")
         if len(value) > 500:
             raise ValueError(f"{key} is too long.")
+    if len(clean["MAIL_FROM_NAME"]) > 100:
+        raise ValueError("The sender name is too long (100 characters at most).")
     if not clean["SMTP_HOST"]:
         return {**clean, "SMTP_HOST": ""}   # saving without a host turns alerts off
     if not _HOST_RE.match(clean["SMTP_HOST"]):
@@ -153,7 +158,8 @@ def send_email(cfg, subject, body):
     port = int(cfg.get("SMTP_PORT") or {"ssl": 465, "starttls": 587, "none": 25}[security])
     msg = EmailMessage()
     msg["Subject"] = subject
-    msg["From"] = cfg.get("MAIL_FROM") or cfg.get("SMTP_USER") or f"certhaven@{hostname()}"
+    address = cfg.get("MAIL_FROM") or cfg.get("SMTP_USER") or f"certhaven@{hostname()}"
+    msg["From"] = formataddr((cfg.get("MAIL_FROM_NAME") or DEFAULT_FROM_NAME, address))
     msg["To"] = ", ".join(recipients(cfg))
     msg.set_content(body)
     context = ssl.create_default_context()
@@ -219,7 +225,7 @@ def collect(now, state):
         if crl.next_update <= now:
             kind, text = "expired", (f"CRL #{crl.number} for {ca.name} EXPIRED on {crl.next_update:%Y-%m-%d %H:%M} UTC. "
                                      "Clients that check revocation may reject its certificates")
-        elif crl.next_update - now <= CRL_DUE:
+        elif crl.next_update - now < CRL_DUE_MARGIN:
             kind, text = "due", f"CRL #{crl.number} for {ca.name} expires {crl.next_update:%Y-%m-%d %H:%M} UTC"
         else:
             continue
@@ -271,10 +277,13 @@ def _body(cfg, alerts):
 
 # --- running --------------------------------------------------------------
 
-def _save(state, status):
-    set_setting("notify_state", json.dumps(state))
+def _record(status, state=None):
+    """Store the run's status for the Settings page; state only when the run completed."""
+    if state is not None:
+        set_setting("notify_state", json.dumps(state))
     set_setting("notify_last", json.dumps(status))
     db.session.commit()
+    return status
 
 
 def run(dry_run=False):
@@ -292,17 +301,12 @@ def run(dry_run=False):
     if alerts:
         if cfg is None:
             status["result"] = "not configured"
-            # Leave alerts pending so they go out once email is configured.
-            set_setting("notify_last", json.dumps(status))
-            db.session.commit()
-            return status
+            return _record(status)   # alerts stay pending until email is configured
         try:
             send_email(cfg, _subject(alerts), _body(cfg, alerts))
         except Exception as exc:  # report any SMTP/network failure; retry next run
             status["result"] = f"error: {describe_error(exc)}"
-            set_setting("notify_last", json.dumps(status))
-            db.session.commit()
-            return status
+            return _record(status)
         status["result"] = "sent"
     else:
         status["result"] = "nothing new"
@@ -314,8 +318,7 @@ def run(dry_run=False):
     cutoff = now - STATE_RETENTION
     state["sent"] = {k: t for k, t in sent.items() if datetime.fromisoformat(t) > cutoff}
     state["last_audit_id"] = newest
-    _save(state, status)
-    return status
+    return _record(status, state)
 
 
 def send_test():
@@ -332,8 +335,9 @@ def summary():
     """What the Settings page shows. Never includes the password itself."""
     raw = read_config()
     return {
-        "configured": load_config() is not None,
+        "configured": bool(raw.get("SMTP_HOST")) and bool(recipients(raw)),
         "values": {k: raw.get(k, "") for k in FIELDS if k != "SMTP_PASSWORD"},
+        "default_from_name": DEFAULT_FROM_NAME,
         "password_set": bool(raw.get("SMTP_PASSWORD")),
         "last": json.loads(get_setting("notify_last", "null")),
     }

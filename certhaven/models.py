@@ -5,6 +5,7 @@ from functools import cached_property
 
 from cryptography import x509
 from cryptography.hazmat.primitives import serialization
+from flask import g, has_request_context
 from flask_sqlalchemy import SQLAlchemy
 
 from .crypto.certs import Profile, common_name, name_text
@@ -24,7 +25,26 @@ class Setting(db.Model):
     value = db.Column(db.Text, nullable=False)
 
 
+def _request_settings():
+    """All settings, read once per request (the table holds a handful of rows). None outside a
+    request, where callers such as the alert job read the database directly."""
+    if not has_request_context():
+        return None
+    if "settings" not in g:
+        g.settings = dict(db.session.execute(db.select(Setting.name, Setting.value)).all())
+    return g.settings
+
+
+def forget_settings():
+    """Drop this request's copy, after the database itself was replaced (restore)."""
+    if has_request_context():
+        g.pop("settings", None)
+
+
 def get_setting(name, default=None):
+    cached = _request_settings()
+    if cached is not None:
+        return cached.get(name, default)
     row = db.session.get(Setting, name)
     return row.value if row else default
 
@@ -35,6 +55,8 @@ def set_setting(name, value):
         row.value = value
     else:
         db.session.add(Setting(name=name, value=value))
+    if has_request_context() and "settings" in g:
+        g.settings[name] = value
 
 
 class Key(db.Model):

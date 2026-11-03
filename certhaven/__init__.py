@@ -8,7 +8,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .models import db, upgrade_schema
 
-__version__ = "0.10.0"
+__version__ = "0.10.1"
 
 # Where users of this instance can get its source code, linked from every page. certhaven is licensed under
 # the AGPL: if you run a modified version for others, point this at the source of your version.
@@ -65,7 +65,10 @@ def create_app(config=None):
     db.init_app(app)
     with app.app_context():
         db.create_all()
-        upgrade_schema()
+        # The web service upgrades the schema when it starts. The alert job, which starts a fresh app
+        # every 15 minutes, sets CERTHAVEN_MIGRATE=0 to skip repeating that.
+        if os.environ.get("CERTHAVEN_MIGRATE", "1") != "0":
+            upgrade_schema()
 
     from . import notify, security
     from .views import account, auth, certs, csrs, importer, keys, main, public, templates, users

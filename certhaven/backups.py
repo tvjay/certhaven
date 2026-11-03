@@ -12,7 +12,7 @@ import tempfile
 from flask import current_app
 
 from .crypto.bundle import SQLITE_HEADER
-from .models import db, upgrade_schema, utcnow
+from .models import db, forget_settings, upgrade_schema, utcnow
 from .security import MAX_RESTORE_SIZE, reset_failures, vault
 
 # A backup must hold at least these tables to be a certhaven database.
@@ -91,6 +91,7 @@ def restore(data):
     vault.lock()           # the data key may differ; each user unlocks with the backup's passwords
     reset_failures()
     current_app.extensions.pop("certhaven_configured", None)
+    forget_settings()
     _rotate_secret_key(data_dir)
     return saved
 

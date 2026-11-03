@@ -40,6 +40,8 @@ class Vault:
         self._dek = None
         self._lock = threading.RLock()
         self._last = 0.0
+        self._timeout = None   # the idle timeout last seen by a request
+        self._reaper = None
 
     @property
     def unlocked(self):
@@ -113,8 +115,20 @@ class Vault:
 
     def expire_if_idle(self, timeout_seconds):
         with self._lock:
+            self._timeout = timeout_seconds
             if self._dek is not None and time.monotonic() - self._last > timeout_seconds:
-                self.lock()
+                self._dek = None
+            # Requests check the timeout as they arrive; this thread enforces it when none do.
+            if self._reaper is None:
+                self._reaper = threading.Thread(target=self._reap, name="vault-idle-lock", daemon=True)
+                self._reaper.start()
+
+    REAP_INTERVAL = 30
+
+    def _reap(self):
+        while True:
+            time.sleep(self.REAP_INTERVAL)
+            self.expire_if_idle(self._timeout)
 
     def encrypt(self, data):
         with self._lock:

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.10.1 — 2026-11-03
+
+- **Email alerts show a sender name.** Settings → Email alerts has a new **Sender name** field; mail clients show
+  it instead of the bare address. It defaults to "certhaven".
+- **The private keys lock after the idle timeout even when nobody is using certhaven.** Before, the timeout was
+  only checked when the next page was loaded.
+- The table of recent failed logins drops addresses that stop trying, so it no longer grows over time.
+- The dashboard counts certificates in the database instead of loading every certificate and CRL, and each page
+  reads the settings once. The 15-minute alert check no longer repeats the database upgrade the web service
+  already did.
+
 ## 0.10.0 — 2026-11-02
 
 - **certmgr is now certhaven.** The name certmgr is already used by Windows, Mono and Cloudflare tools. The

@@ -2,7 +2,6 @@ import os
 from datetime import timedelta
 
 from flask import Blueprint, current_app, flash, redirect, render_template, request, session, url_for
-from sqlalchemy.orm import selectinload
 
 from .. import __version__, accounts, backups, build_date, notify, services
 from ..models import (CSR, ROLE_DESCRIPTIONS, TIME_DISPLAYS, AuditLog, Certificate, Key, User, db, get_setting,
@@ -16,17 +15,19 @@ bp = Blueprint("main", __name__)
 @bp.route("/")
 def dashboard():
     now = utcnow()
-    certs = db.session.scalars(db.select(Certificate).options(selectinload(Certificate.crls))).all()
-    expiring = sorted((c for c in certs if c.status == "valid" and c.not_after < now + timedelta(days=30)),
-                      key=lambda c: c.not_after)
-    crls_due = [ca for ca in certs if ca.is_ca and ca.status == "valid" and ca.key_id
-                and (ca.latest_crl is None or ca.latest_crl.next_update < now + timedelta(days=7))]
+    # The same rules as Certificate.status, as SQL, so the counts need no rows loaded.
+    revoked = Certificate.revoked_at.isnot(None)
+    valid = ~revoked & (Certificate.not_before <= now) & (Certificate.not_after >= now)
+    expired = ~revoked & (Certificate.not_after < now)
+    count = db.func.count(Certificate.id)
+    cas, certs, n_valid, n_revoked, n_expired = db.session.execute(db.select(
+        count.filter(Certificate.is_ca), count.filter(~Certificate.is_ca), count.filter(valid),
+        count.filter(revoked), count.filter(expired))).one()
+    expiring = db.session.scalars(db.select(Certificate).filter(
+        valid, Certificate.not_after < now + timedelta(days=30)).order_by(Certificate.not_after)).all()
+    crls_due = [ca for ca in services.signing_cas(with_crls=True) if services.crl_due(ca, now)]
     counts = {
-        "cas": sum(1 for c in certs if c.is_ca),
-        "certs": sum(1 for c in certs if not c.is_ca),
-        "valid": sum(1 for c in certs if c.status == "valid"),
-        "revoked": sum(1 for c in certs if c.status == "revoked"),
-        "expired": sum(1 for c in certs if c.status == "expired"),
+        "cas": cas, "certs": certs, "valid": n_valid, "revoked": n_revoked, "expired": n_expired,
         "private_keys": db.session.scalar(db.select(db.func.count(Key.id))),
         "csrs": db.session.scalar(db.select(db.func.count(CSR.id)).filter(CSR.cert_id.is_(None))),
     }

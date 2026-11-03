@@ -9,6 +9,8 @@ User=certhaven
 Group=certhaven
 WorkingDirectory=/usr/lib/certhaven
 Environment=CERTHAVEN_DATA_DIR=/var/lib/certhaven
+# certhaven.service upgrades the database schema when it starts; no need to repeat it every run.
+Environment=CERTHAVEN_MIGRATE=0
 ExecStart=/usr/bin/flask --app wsgi notify
 UMask=0077
 LimitCORE=0

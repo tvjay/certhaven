@@ -1,3 +1,12 @@
+certhaven (0.10.1-1) trixie; urgency=medium
+
+  * Email alerts show a sender name, set under Settings → Email alerts.
+  * The private keys lock after the idle timeout even when nobody is using
+    the app; the failed-login table no longer grows without limit.
+  * Faster dashboard and fewer database reads per page.
+
+ -- tvjay <11197859+tvjay@users.noreply.github.com>  Tue, 03 Nov 2026 09:10:16 -0500
+
 certhaven (0.10.0-1) trixie; urgency=medium
 
   * Renamed from certmgr to certhaven. Installing the package removes certmgr
