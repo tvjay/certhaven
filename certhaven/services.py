@@ -244,6 +244,11 @@ def revoke(row, reason):
 def delete_cert(row):
     if row.children:
         raise ValueError("This CA has issued certificates; delete or move those first.")
+    # CRLs are built from the revoked rows in the database. Deleting one before it expires would
+    # drop it from the next CRL, and clients would trust the certificate again.
+    if row.on_crl:
+        raise ValueError(f"{row.name} is revoked but valid until {row.not_after:%Y-%m-%d}, so it must stay on "
+                         "its CA's revocation list. It can be deleted once it has expired.")
     for req in db.session.scalars(db.select(CSR).filter_by(cert_id=row.id)):
         req.cert = None
     db.session.delete(row)

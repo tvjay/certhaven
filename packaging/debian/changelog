@@ -1,3 +1,10 @@
+certhaven (0.10.2-1) trixie; urgency=medium
+
+  * Security: a revoked certificate can no longer be deleted before it
+    expires. Deleting it took it off the next CRL, so clients trusted it again.
+
+ -- tvjay <11197859+tvjay@users.noreply.github.com>  Mon, 09 Nov 2026 23:26:44 -0500
+
 certhaven (0.10.1-1) trixie; urgency=medium
 
   * Email alerts show a sender name, set under Settings → Email alerts.

@@ -121,6 +121,11 @@ class Certificate(db.Model):
         return "valid"
 
     @property
+    def on_crl(self):
+        """Revoked and not yet expired: its issuer's CRL must keep listing it, so the row has to stay."""
+        return self.revoked_at is not None and self.not_after > utcnow()
+
+    @property
     def days_left(self):
         return (self.not_after - utcnow()).days
 

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.10.2 — 2026-11-09
+
+- **Security fix: revoked certificates stay on the revocation list until they expire.** Revocation lists are
+  built from the revoked certificates in the database, so deleting a revoked certificate took it off the next
+  CRL, and clients that check revocation trusted it again. Admins can now delete a revoked certificate only
+  after it has expired; until then its page explains why.
+- If you deleted revoked certificates that had not expired yet, they are no longer on any CRL and cannot be
+  revoked again. Replace the certificates on the services that used them, and treat their old keys as
+  compromised.
+
 ## 0.10.1 — 2026-11-03
 
 - **Email alerts show a sender name.** Settings → Email alerts has a new **Sender name** field; mail clients show

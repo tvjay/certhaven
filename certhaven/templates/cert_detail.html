@@ -99,9 +99,14 @@
   </form>
   {% endif %}
   {% if can('admin') %}
-  <form method="post" action="{{ url_for('certs.delete', id=row.id) }}" data-confirm="Delete this certificate from the database? Prefer revoking certificates that were deployed.">
-    {{ csrf_field() }}<button class="btn danger-outline">Delete</button>
-  </form>
+    {% if row.on_crl %}
+    <p class="small muted">Revoked certificates stay until they expire ({{ row.not_after|d }}), so they remain on the
+      revocation list. You can delete this one after that.</p>
+    {% else %}
+    <form method="post" action="{{ url_for('certs.delete', id=row.id) }}" data-confirm="Delete this certificate from the database? Prefer revoking certificates that were deployed.">
+      {{ csrf_field() }}<button class="btn danger-outline">Delete</button>
+    </form>
+    {% endif %}
   {% endif %}
 </section>
 {% endif %}
