@@ -4,6 +4,8 @@
 set -eu
 DEST=/var/backups/certhaven
 KEEP_DAYS=30
+# Copies taken before an upgrade or restore are rollback points, so they are kept longer.
+KEEP_SAFETY_DAYS=180
 install -d -m 0700 "$DEST"
 /usr/bin/python3 -I - "$DEST/certhaven-$(date +%Y%m%d).db" <<'EOF'
 import sqlite3, sys
@@ -14,3 +16,4 @@ dst.close(); src.close()
 EOF
 chmod 0600 "$DEST"/certhaven-*.db
 find "$DEST" -name 'certhaven-*.db' -mtime +"$KEEP_DAYS" -delete
+find "$DEST" -name 'pre-*.db' -mtime +"$KEEP_SAFETY_DAYS" -delete

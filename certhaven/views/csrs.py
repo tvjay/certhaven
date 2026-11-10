@@ -1,4 +1,5 @@
 from flask import Blueprint, flash, redirect, render_template, request, url_for
+from sqlalchemy.orm import selectinload
 
 from .. import services
 from ..crypto import certs as certlib
@@ -13,7 +14,8 @@ bp = Blueprint("csrs", __name__)
 
 @bp.route("/csrs")
 def index():
-    rows = db.session.scalars(db.select(CSR).order_by(CSR.created_at.desc())).all()
+    rows = db.session.scalars(db.select(CSR).options(selectinload(CSR.cert))
+                              .order_by(CSR.created_at.desc())).all()
     return render_template("csr_list.html", rows=rows)
 
 

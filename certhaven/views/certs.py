@@ -8,7 +8,7 @@ from ..crypto import bundle
 from ..crypto import certs as certlib
 from ..crypto import crl as crllib
 from ..crypto import keys as keylib
-from ..models import Certificate, Key, Template, db
+from ..models import Certificate, Key, Template, db, utcnow
 from ..security import has_role, require_role
 from . import download, safe_filename, subject_from_form, subject_values
 
@@ -62,9 +62,10 @@ def index():
         stmt = stmt.filter(~Certificate.is_ca)
     if issuer:
         stmt = stmt.filter(Certificate.issuer_id == issuer)
-    rows = db.session.scalars(stmt.order_by(db.func.lower(Certificate.name), Certificate.not_after)).all()
     if status:
-        rows = [r for r in rows if r.status == status]
+        stmt = stmt.filter(Certificate.status_clause(status, utcnow()) if status in Certificate.STATUSES
+                           else db.false())
+    rows = db.session.scalars(stmt.order_by(db.func.lower(Certificate.name), Certificate.not_after)).all()
     return render_template("cert_list.html", rows=rows, q=q, status=status, kind=kind,
                            issuer=db.session.get(Certificate, issuer) if issuer else None)
 

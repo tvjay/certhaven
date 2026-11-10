@@ -1,3 +1,12 @@
+certhaven (0.10.3-1) trixie; urgency=medium
+
+  * Nightly backups also remove pre-upgrade copies older than 180 days, and
+    a restore removes pre-restore copies older than 180 days.
+  * Fewer database reads on the certificate and CSR lists and in the email
+    alert check; one shared rule for certificate status.
+
+ -- tvjay <11197859+tvjay@users.noreply.github.com>  Mon, 09 Nov 2026 23:48:14 -0500
+
 certhaven (0.10.2-1) trixie; urgency=medium
 
   * Security: a revoked certificate can no longer be deleted before it

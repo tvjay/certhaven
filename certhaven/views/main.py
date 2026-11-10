@@ -15,14 +15,12 @@ bp = Blueprint("main", __name__)
 @bp.route("/")
 def dashboard():
     now = utcnow()
-    # The same rules as Certificate.status, as SQL, so the counts need no rows loaded.
-    revoked = Certificate.revoked_at.isnot(None)
-    valid = ~revoked & (Certificate.not_before <= now) & (Certificate.not_after >= now)
-    expired = ~revoked & (Certificate.not_after < now)
+    valid = Certificate.status_clause("valid", now)
     count = db.func.count(Certificate.id)
     cas, certs, n_valid, n_revoked, n_expired = db.session.execute(db.select(
         count.filter(Certificate.is_ca), count.filter(~Certificate.is_ca), count.filter(valid),
-        count.filter(revoked), count.filter(expired))).one()
+        count.filter(Certificate.status_clause("revoked", now)),
+        count.filter(Certificate.status_clause("expired", now)))).one()
     expiring = db.session.scalars(db.select(Certificate).filter(
         valid, Certificate.not_after < now + timedelta(days=30)).order_by(Certificate.not_after)).all()
     crls_due = [ca for ca in services.signing_cas(with_crls=True) if services.crl_due(ca, now)]

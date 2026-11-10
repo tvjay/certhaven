@@ -42,6 +42,7 @@ class Vault:
         self._last = 0.0
         self._timeout = None   # the idle timeout last seen by a request
         self._reaper = None
+        self._held = threading.Event()   # set while the data key is in memory
 
     @property
     def unlocked(self):
@@ -93,6 +94,7 @@ class Vault:
         with self._lock:
             self._dek = dek
             self._last = time.monotonic()
+            self._held.set()
 
     def initialize(self, password):
         dek = AESGCM.generate_key(bit_length=256)
@@ -109,6 +111,7 @@ class Vault:
     def lock(self):
         with self._lock:
             self._dek = None
+            self._held.clear()
 
     def touch(self):
         self._last = time.monotonic()
@@ -117,7 +120,7 @@ class Vault:
         with self._lock:
             self._timeout = timeout_seconds
             if self._dek is not None and time.monotonic() - self._last > timeout_seconds:
-                self._dek = None
+                self.lock()
             # Requests check the timeout as they arrive; this thread enforces it when none do.
             if self._reaper is None:
                 self._reaper = threading.Thread(target=self._reap, name="vault-idle-lock", daemon=True)
@@ -127,6 +130,7 @@ class Vault:
 
     def _reap(self):
         while True:
+            self._held.wait()   # nothing to expire while locked
             time.sleep(self.REAP_INTERVAL)
             self.expire_if_idle(self._timeout)
 

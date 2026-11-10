@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.10.3 — 2026-11-09
+
+- Safety copies no longer pile up: the nightly backup also removes copies taken before an upgrade
+  (`/var/backups/certhaven/pre-*.db`) once they are 180 days old, and a restore removes `pre-restore` copies
+  older than 180 days, always keeping the newest.
+- The certificate list's status filter, the dashboard and the CSR list read less from the database, and the
+  15-minute email alert check only loads certificates that could raise an alert. The rule for valid, pending,
+  expired and revoked now lives in one place.
+- The idle timeout's background check sleeps while the private keys are locked.
+
 ## 0.10.2 — 2026-11-09
 
 - **Security fix: revoked certificates stay on the revocation list until they expire.** Revocation lists are

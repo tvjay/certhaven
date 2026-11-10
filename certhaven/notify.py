@@ -177,23 +177,25 @@ def send_email(cfg, subject, body):
 
 # --- collecting alerts ----------------------------------------------------
 
-def _latest_valid_expiry(certs):
-    """(subject, issuer) -> the latest expiry among valid certificates, built once per run."""
-    latest = {}
-    for c in certs:
-        if c.status == "valid":
-            key = (c.subject, c.issuer_subject)
-            if key not in latest or c.not_after > latest[key]:
-                latest[key] = c.not_after
-    return latest
+def _latest_valid_expiry(now):
+    """(subject, issuer) -> the latest expiry among valid certificates, in one grouped query."""
+    rows = db.session.execute(
+        db.select(Certificate.subject, Certificate.issuer_subject, db.func.max(Certificate.not_after))
+        .filter(Certificate.status_clause("valid", now))
+        .group_by(Certificate.subject, Certificate.issuer_subject))
+    return {(subject, issuer): latest for subject, issuer, latest in rows}
 
 
 def collect(now, state):
     """Return (alerts, newest audit id). Each alert is (key, section, text)."""
     sent = state.get("sent", {})
     alerts = []
-    certs = db.session.scalars(db.select(Certificate).options(selectinload(Certificate.crls))).all()
-    latest_valid = _latest_valid_expiry(certs)
+    # Only what can raise an alert: certificates near or just past expiry, and CAs for their CRLs.
+    soon, recent = now + timedelta(days=max(EXPIRY_THRESHOLDS)), now - EXPIRED_GRACE
+    certs = db.session.scalars(db.select(Certificate).filter(
+        Certificate.is_ca | Certificate.not_after.between(recent, soon))
+        .options(selectinload(Certificate.crls))).all()
+    latest_valid = _latest_valid_expiry(now)
 
     for cert in sorted(certs, key=lambda c: c.not_after):
         if cert.revoked_at:

@@ -120,6 +120,19 @@ class Certificate(db.Model):
             return "pending"
         return "valid"
 
+    STATUSES = ("valid", "pending", "expired", "revoked")
+
+    @staticmethod
+    def status_clause(status, now):
+        """The rule in status above as a SQL condition, so pages can count and filter without loading rows."""
+        revoked = Certificate.revoked_at.isnot(None)
+        return {
+            "revoked": revoked,
+            "expired": ~revoked & (Certificate.not_after < now),
+            "pending": ~revoked & (Certificate.not_before > now) & (Certificate.not_after >= now),
+            "valid": ~revoked & (Certificate.not_before <= now) & (Certificate.not_after >= now),
+        }[status]
+
     @property
     def on_crl(self):
         """Revoked and not yet expired: its issuer's CRL must keep listing it, so the row has to stay."""

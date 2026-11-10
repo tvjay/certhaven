@@ -4,10 +4,12 @@ A backup is the whole SQLite database: users, the private keys (still encrypted 
 wrapped by each user's password), certificates with their names, settings and the audit log. The
 email settings file lives outside the database and is not part of it.
 """
+import glob
 import os
 import secrets
 import sqlite3
 import tempfile
+import time
 
 from flask import current_app
 
@@ -17,6 +19,8 @@ from .security import MAX_RESTORE_SIZE, reset_failures, vault
 
 # A backup must hold at least these tables to be a certhaven database.
 REQUIRED_TABLES = {"certificates", "keys", "settings"}
+# Copies of the database saved before a restore are kept this long, then removed at the next restore.
+PRE_RESTORE_KEEP_DAYS = 180
 
 
 def serialize(db_path):
@@ -78,6 +82,7 @@ def restore(data):
         saved = os.path.join(data_dir, f"pre-restore-{utcnow():%Y%m%d-%H%M%S}.db")
         _copy(db_path, saved)
         os.chmod(saved, 0o600)
+        _prune_pre_restore(data_dir)
 
         # Close every pooled connection, then overwrite the live database page by page.
         db.session.remove()
@@ -107,3 +112,12 @@ def _rotate_secret_key(data_dir):
     os.chmod(tmp, 0o600)
     os.replace(tmp, path)
     current_app.secret_key = key
+
+
+def _prune_pre_restore(data_dir):
+    """Remove pre-restore copies older than PRE_RESTORE_KEEP_DAYS; the newest is always kept."""
+    cutoff = time.time() - PRE_RESTORE_KEEP_DAYS * 86400
+    copies = sorted(glob.glob(os.path.join(data_dir, "pre-restore-*.db")), key=os.path.getmtime)
+    for path in copies[:-1]:
+        if os.path.getmtime(path) < cutoff:
+            os.remove(path)
