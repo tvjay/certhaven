@@ -86,6 +86,25 @@
   {% if row.key_id and can('operator') %}
     <form method="post" action="{{ url_for('certs.regenerate_crl', id=row.id) }}">{{ csrf_field() }}<button class="btn">Re-sign CRL now</button></form>
   {% endif %}
+  {% if row.deleted_revocations %}
+    <h3>Deleted, still on this CRL</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Name</th><th>Serial</th><th>Revoked</th><th>Reason</th><th>Until</th></tr></thead>
+      <tbody>
+      {% for gone in row.deleted_revocations %}
+        <tr>
+          <td>{{ gone.name }}</td>
+          <td class="mono small" title="{{ gone.serial }}">{{ gone.serial[:8] }}…</td>
+          <td>{{ gone.revoked_at|d }}</td>
+          <td>{{ reasons.get(gone.revocation_reason, gone.revocation_reason or '—') }}</td>
+          <td>{{ gone.not_after|d }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    <p class="small muted">Deleted certificates stay on this CA's revocation list until they expire, so clients keep
+      rejecting them. They drop off at the first CRL signed after that date.</p>
+  {% endif %}
   {% if can('admin') %}
     <form method="post" action="{{ url_for('certs.crl_days', id=row.id) }}" class="inline">
       {{ csrf_field() }}
@@ -171,14 +190,15 @@
   </form>
   {% endif %}
   {% if can('admin') %}
-    {% if row.on_crl %}
-    <p class="small muted">Revoked certificates stay until they expire ({{ row.not_after|d }}), so they remain on the
-      revocation list. You can delete this one after that.</p>
+    {% if row.on_crl and row.issuer %}
+      {% set confirm = "Delete " ~ row.name ~ "? It stays on " ~ row.issuer.name ~ "'s revocation list until "
+                       ~ row.not_after.strftime('%Y-%m-%d') ~ ", so clients keep rejecting it." %}
     {% else %}
-    <form method="post" action="{{ url_for('certs.delete', id=row.id) }}" data-confirm="Delete this certificate from the database? Prefer revoking certificates that were deployed.">
+      {% set confirm = "Delete this certificate from the database? Prefer revoking certificates that were deployed." %}
+    {% endif %}
+    <form method="post" action="{{ url_for('certs.delete', id=row.id) }}" data-confirm="{{ confirm }}">
       {{ csrf_field() }}<button class="btn danger-outline">Delete</button>
     </form>
-    {% endif %}
   {% endif %}
 </section>
 {% endif %}

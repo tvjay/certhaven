@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.11.3 — 2026-11-11
+
+- **Revoked certificates can be deleted again, CAs included, without un-revoking them.** Deleting a revoked
+  certificate that has not expired keeps a small record of it (name, serial, revocation date and reason,
+  expiry), so the issuing CA's CRL goes on listing it until it expires. The CA's page shows these under
+  **Deleted, still on this CRL**, and the delete prompt says how long it stays listed. Records are removed at
+  the first CRL signed after the certificate's expiry, and with their CA if the CA itself is deleted.
+- This replaces 0.10.2's rule that a revoked certificate could not be deleted before it expired.
+
 ## 0.11.2 — 2026-11-11
 
 - Certificate pages show the **PEM** text box directly under **Details**, instead of at the very bottom of the

@@ -13,7 +13,7 @@ from .crypto import certs as certlib
 from .crypto import crl as crllib
 from .crypto import csr as csrlib
 from .crypto import keys as keylib
-from .models import CRL, CSR, AuditLog, Certificate, Key, Template, db, get_setting, utcnow
+from .models import CRL, CSR, AuditLog, Certificate, DeletedRevocation, Key, Template, db, get_setting, utcnow
 from .security import vault
 
 # A CRL this close to its next update is due: re-signed at unlock, flagged on the dashboard and in alerts.
@@ -245,16 +245,20 @@ def revoke(row, reason):
 
 
 def delete_cert(row):
+    """Delete a certificate. A revoked one that has not expired leaves a DeletedRevocation behind, so its
+    CA's CRL keeps listing it; otherwise deleting it would make clients trust it again. Returns that record,
+    or None."""
     if row.children:
         raise ValueError("This CA has issued certificates; delete or move those first.")
-    # CRLs are built from the revoked rows in the database. Deleting one before it expires would
-    # drop it from the next CRL, and clients would trust the certificate again.
-    if row.on_crl:
-        raise ValueError(f"{row.name} is revoked but valid until {row.not_after:%Y-%m-%d}, so it must stay on "
-                         "its CA's revocation list. It can be deleted once it has expired.")
+    kept = None
+    if row.on_crl and row.issuer_id:
+        kept = DeletedRevocation(ca_id=row.issuer_id, name=row.name, serial=row.serial, revoked_at=row.revoked_at,
+                                 revocation_reason=row.revocation_reason, not_after=row.not_after)
+        db.session.add(kept)
     for req in db.session.scalars(db.select(CSR).filter_by(cert_id=row.id)):
         req.cert = None
     db.session.delete(row)
+    return kept
 
 
 # --- CRLs -----------------------------------------------------------------
@@ -268,6 +272,12 @@ def regenerate_crl(ca_row):
         db.select(Certificate.serial, Certificate.revoked_at, Certificate.revocation_reason)
         .filter(Certificate.issuer_id == ca_row.id, Certificate.revoked_at.isnot(None)))]
     now = utcnow()
+    # Revoked certificates deleted before they expired stay on the CRL until then; expired ones are dropped.
+    for gone in list(ca_row.deleted_revocations):
+        if gone.not_after > now:
+            revoked.append((int(gone.serial, 16), gone.revoked_at, gone.revocation_reason))
+        else:
+            db.session.delete(gone)
     days = crl_days_for(ca_row)
     crl = crllib.build(ca_row.x509, load_private_key(ca_row.key), revoked, number, now, days)
     row = CRL(ca=ca_row, number=number, this_update=now, next_update=now + timedelta(days=days),

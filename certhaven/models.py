@@ -106,6 +106,8 @@ class Certificate(db.Model):
     children = db.relationship("Certificate", back_populates="issuer", order_by="Certificate.name")
     crls = db.relationship("CRL", back_populates="ca", cascade="all, delete-orphan",
                            order_by="CRL.number.desc()")
+    deleted_revocations = db.relationship("DeletedRevocation", back_populates="ca", cascade="all, delete-orphan",
+                                          order_by="DeletedRevocation.revoked_at")
 
     # Parsed once per loaded row; the PEM of a stored certificate never changes.
     @cached_property
@@ -226,6 +228,22 @@ class CRL(db.Model):
     @cached_property
     def x509(self):
         return x509.load_pem_x509_crl(self.pem.encode())
+
+
+class DeletedRevocation(db.Model):
+    """A revoked certificate that was deleted before it expired. Its CA's CRL keeps listing the serial until
+    not_after, so clients go on rejecting it; after that the row is removed when the CRL is next signed."""
+    __tablename__ = "deleted_revocations"
+    id = db.Column(db.Integer, primary_key=True)
+    ca_id = db.Column(db.Integer, db.ForeignKey("certificates.id"), nullable=False, index=True)
+    name = db.Column(db.String(200), nullable=False)
+    serial = db.Column(db.String(64), nullable=False)
+    revoked_at = db.Column(db.DateTime, nullable=False)
+    revocation_reason = db.Column(db.String(40))
+    not_after = db.Column(db.DateTime, nullable=False)
+    deleted_at = db.Column(db.DateTime, default=utcnow, nullable=False)
+
+    ca = db.relationship("Certificate", back_populates="deleted_revocations")
 
 
 class AuditLog(db.Model):

@@ -204,11 +204,16 @@ def renew(id):
 def delete(id):
     row = db.get_or_404(Certificate, id)
     try:
-        name, serial = row.name, row.serial
-        services.delete_cert(row)
-        services.audit("delete_cert", f"{name} serial {serial}")
+        name, serial, issuer = row.name, row.serial, row.issuer
+        kept = services.delete_cert(row)
+        note = f"; kept on {issuer.name}'s CRL until {kept.not_after:%Y-%m-%d}" if kept else ""
+        services.audit("delete_cert", f"{name} serial {serial}{note}")
         db.session.commit()
-        flash(f"Deleted {name}. Its private key, if any, is still under Keys.", "success")
+        message = f"Deleted {name}. Its private key, if any, is still under Keys."
+        if kept:
+            message += (f" It stays on {issuer.name}'s revocation list until {kept.not_after:%Y-%m-%d}, so clients "
+                        "keep rejecting it.")
+        flash(message, "success")
         return redirect(url_for(".index"))
     except ValueError as exc:
         db.session.rollback()

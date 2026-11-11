@@ -1,3 +1,11 @@
+certhaven (0.11.3-1) trixie; urgency=medium
+
+  * Revoked certificates, including CAs, can be deleted before they expire.
+    A record keeps the serial on the issuing CA's CRL until it expires, and
+    the CA's page lists them under "Deleted, still on this CRL".
+
+ -- tvjay <11197859+tvjay@users.noreply.github.com>  Wed, 11 Nov 2026 01:54:15 -0500
+
 certhaven (0.11.2-1) trixie; urgency=medium
 
   * Certificate pages show the PEM text under Details instead of at the
