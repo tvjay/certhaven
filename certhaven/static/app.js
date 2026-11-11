@@ -34,3 +34,10 @@ document.addEventListener("submit", (event) => {
   const message = event.target.dataset.confirm;
   if (message && !window.confirm(message)) event.preventDefault();
 });
+
+// A form that downloads a file leaves the page as it was. Forms marked data-reload-after reload it once the
+// download has started, so the page shows what the server recorded (such as the next step).
+document.addEventListener("submit", (event) => {
+  const delay = Number(event.target.dataset.reloadAfter);
+  if (!event.defaultPrevented && delay) setTimeout(() => window.location.reload(), delay);
+});

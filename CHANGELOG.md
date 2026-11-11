@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.11.1 — 2026-11-11
+
+- **Taking a key offline:** step 2 now appears on its own after you download the offline copy. A download leaves
+  the page as it was, so before this fix step 2 only showed up after reloading the page by hand. If the server
+  refuses the download (for example, the passwords do not match), the message stays on screen.
+
 ## 0.11.0 — 2026-11-11
 
 - **Keep a root CA's key offline.** On a CA's page, **Private key → Take the key offline** downloads the key and

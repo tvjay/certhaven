@@ -111,7 +111,7 @@
         <li>Download the encrypted copy below and store it, with its password, somewhere safe.</li>
         <li>Remove the key. This re-signs the CRL first, valid for {{ crl_days }} days.</li>
       </ol>
-      <form method="post" action="{{ url_for('certs.offline_export', id=row.id) }}">
+      <form method="post" action="{{ url_for('certs.offline_export', id=row.id) }}" data-reload-after="2500">
         {{ csrf_field() }}
         <div class="grid">
           <label>File password <input type="password" name="password" minlength="12" autocomplete="new-password" required></label>
@@ -129,7 +129,7 @@
         <button class="btn danger">2. Remove the key from certhaven</button>
       </form>
       {% else %}
-      <p class="small muted">Step 2 appears here after you download the copy.</p>
+      <p class="small muted">Step 2 appears here after you download the copy. If it does not, reload this page.</p>
       {% endif %}
     </details>
     {% endif %}
