@@ -36,7 +36,6 @@
       {% else %}<span class="muted">— private key not in database</span>{% endif %}</dd>
     <dt>Signature</dt><dd>{{ info.signature_algorithm }}</dd>
     <dt>SHA-256</dt><dd class="mono small">{{ info.sha256 }}</dd>
-    <dt>SHA-1</dt><dd class="mono small">{{ info.sha1 }}</dd>
   </dl>
   <h3>Extensions</h3>
   <dl>
@@ -77,50 +76,41 @@
 <section class="card" id="crl">
   <h2>Revocation list</h2>
   {% set crl = row.latest_crl %}
-  {% if crl %}
-    <p>CRL #{{ crl.number }} · signed {{ crl.this_update|dt }}<br>next update {{ crl.next_update|dt }}</p>
-    <p class="buttons"><a class="btn" href="{{ url_for('certs.download_crl', id=row.id) }}">Download CRL (PEM)</a></p>
-  {% else %}
-    <p class="muted">No CRL yet.</p>
-  {% endif %}
-  {% if row.key_id and can('operator') %}
-    <form method="post" action="{{ url_for('certs.regenerate_crl', id=row.id) }}">{{ csrf_field() }}<button class="btn">Re-sign CRL now</button></form>
-  {% endif %}
-  {% if row.deleted_revocations %}
-    <h3>Deleted, still on this CRL</h3>
-    <div class="table-wrap"><table>
-      <thead><tr><th>Name</th><th>Serial</th><th>Revoked</th><th>Reason</th><th>Until</th></tr></thead>
-      <tbody>
-      {% for gone in row.deleted_revocations %}
-        <tr>
-          <td>{{ gone.name }}</td>
-          <td class="mono small" title="{{ gone.serial }}">{{ gone.serial[:8] }}…</td>
-          <td>{{ gone.revoked_at|d }}</td>
-          <td>{{ reasons.get(gone.revocation_reason, gone.revocation_reason or '—') }}</td>
-          <td>{{ gone.not_after|d }}</td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table></div>
-    <p class="small muted">Deleted certificates stay on this CA's revocation list until they expire, so clients keep
-      rejecting them. They drop off at the first CRL signed after that date.</p>
-  {% endif %}
+  <dl>
+    {% if crl %}
+      <dt>Current</dt><dd>CRL #{{ crl.number }}, signed {{ crl.this_update|d }}</dd>
+      <dt>Valid until</dt><dd>{{ crl.next_update|dt }}</dd>
+    {% else %}
+      <dt>Current</dt><dd class="muted">none yet</dd>
+    {% endif %}
+    <dt>New CRLs</dt><dd>valid {{ crl_days }} days <span class="muted">({{ 'set for this CA' if row.crl_days else 'default' }})</span></dd>
+    {% if row.deleted_revocations %}
+      <dt>Deleted</dt><dd><a href="#deleted">{{ row.deleted_revocations|length }} still listed</a></dd>
+    {% endif %}
+    <dt>Public</dt><dd><a href="{{ url_for('public.crl', ca_id=row.id) }}" title="{{ crl_url or '' }}">CRL</a> ·
+      <a href="{{ url_for('public.ca_cert', ca_id=row.id) }}" title="{{ aia_url or '' }}">CA certificate</a>
+      <span class="muted small">(no login needed)</span></dd>
+  </dl>
+  <div class="buttons">
+    {% if crl %}<a class="btn" href="{{ url_for('certs.download_crl', id=row.id) }}">Download CRL</a>{% endif %}
+    {% if row.key_id and can('operator') %}
+      <form method="post" action="{{ url_for('certs.regenerate_crl', id=row.id) }}">{{ csrf_field() }}<button class="btn">Re-sign now</button></form>
+    {% endif %}
+  </div>
   {% if can('admin') %}
-    <form method="post" action="{{ url_for('certs.crl_days', id=row.id) }}" class="inline">
+  <details>
+    <summary>Change how long new CRLs are valid</summary>
+    <form method="post" action="{{ url_for('certs.crl_days', id=row.id) }}">
       {{ csrf_field() }}
-      <label>New CRLs valid for (days)
+      <label>Days ({{ crl_days_range[0] }}–{{ crl_days_range[1] }})
         <input name="crl_days" type="number" min="{{ crl_days_range[0] }}" max="{{ crl_days_range[1] }}"
-               value="{{ row.crl_days or '' }}" placeholder="{{ crl_days }}"></label>
+               value="{{ row.crl_days or '' }}" placeholder="default from Settings"></label>
       <button class="btn">Save</button>
     </form>
-    <p class="small muted">Empty uses the default from Settings. A CA whose key is kept offline needs a long one,
-      up to {{ crl_days_range[1] }} days.</p>
-  {% else %}
-    <p class="small muted">New CRLs are valid for {{ crl_days }} days.</p>
+    <p class="small muted">Leave empty to use the default from Settings. A CA whose key is kept offline needs a
+      long one, such as 365 days.</p>
+  </details>
   {% endif %}
-  <p class="small">Public URLs (no login needed):<br>
-    <a class="mono" href="{{ url_for('public.crl', ca_id=row.id) }}">{{ crl_url or url_for('public.crl', ca_id=row.id) }}</a><br>
-    <a class="mono" href="{{ url_for('public.ca_cert', ca_id=row.id) }}">{{ aia_url or url_for('public.ca_cert', ca_id=row.id) }}</a></p>
 </section>
 
 <section class="card" id="offline">
@@ -135,7 +125,7 @@
         sign anything, and its CRL can only be renewed by importing the file. Usually only a root CA is kept offline;
         issue certificates from an intermediate.</p>
       <ol class="small">
-        <li>Set <a href="#crl">New CRLs valid for</a> to a long period, such as 365 days.</li>
+        <li>Under <a href="#crl">Revocation list</a>, set new CRLs to a long validity, such as 365 days.</li>
         <li>Download the encrypted copy below and store it, with its password, somewhere safe.</li>
         <li>Remove the key. This re-signs the CRL first, valid for {{ crl_days }} days.</li>
       </ol>
@@ -209,6 +199,28 @@
 <section>
   <h2>Issued by this CA</h2>
   {{ cert_table(row.sorted_children, show_issuer=false) }}
+</section>
+{% endif %}
+
+{% if row.is_ca and row.deleted_revocations %}
+<section id="deleted">
+  <h2>Deleted, still on the revocation list</h2>
+  <p class="small muted">These revoked certificates were deleted before they expired. They stay on this CA's CRL
+    until the date shown, so clients keep rejecting them, then drop off at the next CRL.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Name</th><th>Serial</th><th>Revoked</th><th>Reason</th><th>Listed until</th></tr></thead>
+    <tbody>
+    {% for gone in row.deleted_revocations %}
+      <tr>
+        <td>{{ gone.name }}</td>
+        <td class="mono small">{{ gone.serial }}</td>
+        <td>{{ gone.revoked_at|d }}</td>
+        <td>{{ reasons.get(gone.revocation_reason, gone.revocation_reason or '—') }}</td>
+        <td>{{ gone.not_after|d }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
 </section>
 {% endif %}
 {% endblock %}

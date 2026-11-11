@@ -1,3 +1,18 @@
+certhaven (0.11.5-1) trixie; urgency=medium
+
+  * CA pages list "Issued by this CA" before the deleted certificates.
+  * New certificates get SHA-256-based key identifiers (RFC 7093); pages
+    no longer show a SHA-1 fingerprint.
+
+ -- tvjay <11197859+tvjay@users.noreply.github.com>  Wed, 11 Nov 2026 02:05:22 -0500
+
+certhaven (0.11.4-1) trixie; urgency=medium
+
+  * Clearer revocation list card on CA pages; deleted certificates that stay
+    on the CRL are listed in a full-width section.
+
+ -- tvjay <11197859+tvjay@users.noreply.github.com>  Wed, 11 Nov 2026 02:00:51 -0500
+
 certhaven (0.11.3-1) trixie; urgency=medium
 
   * Revoked certificates, including CAs, can be deleted before they expire.

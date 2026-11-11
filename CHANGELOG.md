@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.11.5 — 2026-11-11
+
+- **A clearer Revocation list card on CA pages.** It now shows a short summary in the same layout as Details
+  (current CRL, valid until, how long new CRLs are valid, how many deleted certificates are still listed, and
+  the public CRL and CA certificate links), with **Download CRL** and **Re-sign now** side by side. Changing the
+  CRL validity is folded away under **Change how long new CRLs are valid**.
+- Deleted certificates that stay on the CRL are listed in their own full-width section, **Deleted, still on the
+  revocation list**, below **Issued by this CA**, with their full serial numbers.
+- **No more SHA-1.** Certificate pages no longer show a SHA-1 fingerprint (the SHA-256 one remains), and new
+  certificates get a Subject Key Identifier made from SHA-256 (RFC 7093) instead of SHA-1. Neither was used for
+  security: signatures have always used SHA-256 or stronger. Existing certificates keep their identifiers, and
+  chains still link up, because each certificate copies its issuer's identifier.
+- 0.11.4 was installed on one server for testing only and never published; its changes are part of this release.
+
 ## 0.11.3 — 2026-11-11
 
 - **Revoked certificates can be deleted again, CAs included, without un-revoking them.** Deleting a revoked

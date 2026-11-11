@@ -1,9 +1,10 @@
+import hashlib
 import ipaddress
 import re
 from dataclasses import dataclass, field
 
 from cryptography import x509
-from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import AuthorityInformationAccessOID, ExtendedKeyUsageOID, NameOID
 
@@ -160,6 +161,13 @@ def _key_usage(names, public_key):
     return x509.KeyUsage(**flags, encipher_only=False, decipher_only=False)
 
 
+def key_identifier(public_key):
+    """Subject key identifier: the first 160 bits of the SHA-256 hash of the public key info, which RFC 7093
+    allows in place of RFC 5280's SHA-1 method. It only labels the key; nothing relies on it for security."""
+    spki = public_key.public_bytes(serialization.Encoding.DER, serialization.PublicFormat.SubjectPublicKeyInfo)
+    return x509.SubjectKeyIdentifier(hashlib.sha256(spki).digest()[:20])
+
+
 def _aki_for(issuer_cert):
     try:
         ski = issuer_cert.extensions.get_extension_for_class(x509.SubjectKeyIdentifier).value
@@ -191,7 +199,7 @@ def issue(*, subject, public_key, signer_key, issuer_cert, profile, sans, not_be
         builder = builder.add_extension(x509.ExtendedKeyUsage(ekus), critical=False)
     if sans:
         builder = builder.add_extension(x509.SubjectAlternativeName(sans), critical=len(subject) == 0)
-    ski = x509.SubjectKeyIdentifier.from_public_key(public_key)
+    ski = key_identifier(public_key)
     builder = builder.add_extension(ski, critical=False)
     if issuer_cert:
         builder = builder.add_extension(_aki_for(issuer_cert), critical=False)
@@ -285,6 +293,5 @@ def details(cert):
         "signature_algorithm": _oid_name(cert.signature_algorithm_oid),
         "public_key": keys.describe(cert.public_key()),
         "sha256": colon_hex(cert.fingerprint(hashes.SHA256())),
-        "sha1": colon_hex(cert.fingerprint(hashes.SHA1())),
         "extensions": [(_oid_name(e.oid), e.critical, extension_text(e)) for e in cert.extensions],
     }
