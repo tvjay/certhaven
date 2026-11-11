@@ -23,7 +23,10 @@ client certificates, all signed by a CA your devices trust.
 - **Sign CSRs** — paste or upload a CSR, review it, edit its SANs and sign it. The template decides what the
   certificate may do, never the request. You can also create CSRs for keys kept in certhaven.
 - **Revocation and CRLs** — revoke with a reason code; the CA's CRL is re-signed straight away and served at a
-  public URL that is written into every certificate (CRL distribution point and CA-issuer links).
+  public URL that is written into every certificate (CRL distribution point and CA-issuer links). Each CA can
+  have its own CRL validity.
+- **Offline root key** — take a CA's private key out of certhaven into an encrypted file you keep offline, and
+  import it again when its CRL needs renewing or you need a new intermediate.
 - **Export and import** — PEM, DER, full chain, PKCS#12; private keys plain or passphrase-protected. Import
   PEM, DER and PKCS#12 bundles in any order: certificates link to their issuers and keys automatically.
 - **Users and roles** — Admin, Operator and Auditor, with a full audit log of who did what.
@@ -86,7 +89,7 @@ Download the `.deb` and its checksum from the [latest release](https://github.co
 check it, and install it (apt pulls in the dependencies):
 
 ```bash
-VERSION=0.10.3   # the latest release
+VERSION=0.11.0   # the latest release
 wget https://github.com/tvjay/certhaven/releases/download/v$VERSION/certhaven_${VERSION}-1_all.deb{,.sha256}
 sha256sum -c certhaven_${VERSION}-1_all.deb.sha256
 sudo apt install ./certhaven_${VERSION}-1_all.deb
@@ -165,6 +168,14 @@ sudo journalctl -u certhaven-notify        # email alert runs
   also how to move certhaven to another server. (**Import** is for certificate and key files; it refuses a
   backup.) Without the web UI: stop the service, copy the `.db` file to `/var/lib/certhaven/certhaven.db` (owner
   `certhaven`, mode 0600) and start it again.
+- **Keep the root key offline (optional):** issue everything from an intermediate, then on the root CA's page
+  set **New CRLs valid for** to a long period such as 365 days and use **Private key → Take the key offline**.
+  You download the key and certificate as a password-protected `.p12` file; store it, with its password, on
+  offline media such as two USB drives. certhaven re-signs the root's CRL, then removes the key; the root
+  certificate stays, so devices can still download it. While the key is offline the root signs nothing, and
+  the dashboard and email alerts warn 30 days before its CRL expires. To renew it, or to create or replace an
+  intermediate, choose the file under **Import** with its password: certhaven attaches the key again and
+  re-signs the CRL at once. Take it offline again afterwards.
 - **One worker only:** the unlocked key lives in a single process, so keep gunicorn at `--workers 1`
   (threads are fine).
 - **Email settings** are stored in `/var/lib/certhaven/notify.conf` (mode 0600), outside the database and its

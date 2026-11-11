@@ -18,6 +18,9 @@ from .security import vault
 
 # A CRL this close to its next update is due: re-signed at unlock, flagged on the dashboard and in alerts.
 CRL_DUE_MARGIN = timedelta(days=7)
+# A CA whose key is offline is flagged earlier, to leave time to fetch the key and import it.
+OFFLINE_CRL_DUE_MARGIN = timedelta(days=30)
+CRL_DAYS_MIN, CRL_DAYS_MAX = 8, 365
 CRLS_KEPT = 5
 MAX_VALIDITY_DAYS = 36500
 
@@ -265,7 +268,7 @@ def regenerate_crl(ca_row):
         db.select(Certificate.serial, Certificate.revoked_at, Certificate.revocation_reason)
         .filter(Certificate.issuer_id == ca_row.id, Certificate.revoked_at.isnot(None)))]
     now = utcnow()
-    days = int(get_setting("crl_days", "30"))
+    days = crl_days_for(ca_row)
     crl = crllib.build(ca_row.x509, load_private_key(ca_row.key), revoked, number, now, days)
     row = CRL(ca=ca_row, number=number, this_update=now, next_update=now + timedelta(days=days),
               pem=crl.public_bytes(serialization.Encoding.PEM).decode())
@@ -277,10 +280,39 @@ def regenerate_crl(ca_row):
     return row
 
 
+def crl_days_for(ca):
+    """Days a new CRL from ca is valid: its own setting, else the global one."""
+    return ca.crl_days or int(get_setting("crl_days", "30"))
+
+
 def crl_due(ca, now):
-    """True when ca has no CRL yet or its latest one expires within CRL_DUE_MARGIN."""
+    """True when ca has no CRL yet or its latest one expires within the margin: CRL_DUE_MARGIN while
+    certhaven holds the key, OFFLINE_CRL_DUE_MARGIN while it is offline."""
     latest = ca.latest_crl
-    return latest is None or latest.next_update - now < CRL_DUE_MARGIN
+    margin = CRL_DUE_MARGIN if ca.key_id else OFFLINE_CRL_DUE_MARGIN
+    return latest is None or latest.next_update - now < margin
+
+
+def take_key_offline(ca_row):
+    """Re-sign ca_row's CRL with its full validity, then remove its private key from the database.
+    The certificate stays; importing the key file later attaches it again (see save_key).
+    Returns the new CRL."""
+    if not ca_row.is_ca or ca_row.key is None:
+        raise ValueError(f"{ca_row.name} has no private key in certhaven to take offline.")
+    crl = regenerate_crl(ca_row)   # the CRL clients will use until the key is back
+    key = ca_row.key
+    for model in (Certificate, CSR):   # renewed copies of the CA certificate share the key
+        for item in db.session.scalars(db.select(model).filter_by(key_id=key.id)):
+            item.key = None
+    db.session.delete(key)
+    return crl
+
+
+def offline_cas_due(now):
+    """Valid CAs whose key is offline and whose last CRL is due: only importing the key can renew it."""
+    rows = db.session.scalars(db.select(Certificate).filter(Certificate.is_ca, Certificate.key_id.is_(None))
+                              .options(selectinload(Certificate.crls)))
+    return [ca for ca in rows if ca.status == "valid" and ca.latest_crl and crl_due(ca, now)]
 
 
 def refresh_due_crls():

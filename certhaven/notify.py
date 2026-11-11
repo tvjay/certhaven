@@ -25,7 +25,7 @@ from flask import current_app
 from sqlalchemy.orm import selectinload
 
 from .models import AuditLog, Certificate, db, get_setting, set_setting, utcnow
-from .services import CRL_DUE_MARGIN
+from .services import crl_due
 
 EXPIRY_THRESHOLDS = (1, 7, 14, 30)
 EXPIRED_GRACE = timedelta(days=7)   # still report certificates that expired this recently
@@ -227,13 +227,15 @@ def collect(now, state):
         if crl.next_update <= now:
             kind, text = "expired", (f"CRL #{crl.number} for {ca.name} EXPIRED on {crl.next_update:%Y-%m-%d %H:%M} UTC. "
                                      "Clients that check revocation may reject its certificates")
-        elif crl.next_update - now < CRL_DUE_MARGIN:
+        elif crl_due(ca, now):
             kind, text = "due", f"CRL #{crl.number} for {ca.name} expires {crl.next_update:%Y-%m-%d %H:%M} UTC"
         else:
             continue
         key = f"crl:{ca.id}:{crl.number}:{kind}"
         if key not in sent:
-            alerts.append((key, "Revocation lists", text + ". Log in to certhaven to re-sign it."))
+            action = ("Log in to certhaven to re-sign it." if ca.key_id else
+                      "Its key is offline: import the key file under Import in certhaven, which re-signs the CRL.")
+            alerts.append((key, "Revocation lists", f"{text}. {action}"))
 
     newest = db.session.scalar(db.select(db.func.max(AuditLog.id))) or 0
     last = state.get("last_audit_id")

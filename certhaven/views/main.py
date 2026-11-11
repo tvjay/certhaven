@@ -24,6 +24,7 @@ def dashboard():
     expiring = db.session.scalars(db.select(Certificate).filter(
         valid, Certificate.not_after < now + timedelta(days=30)).order_by(Certificate.not_after)).all()
     crls_due = [ca for ca in services.signing_cas(with_crls=True) if services.crl_due(ca, now)]
+    crls_due += services.offline_cas_due(now)
     counts = {
         "cas": cas, "certs": certs, "valid": n_valid, "revoked": n_revoked, "expired": n_expired,
         "private_keys": db.session.scalar(db.select(db.func.count(Key.id))),

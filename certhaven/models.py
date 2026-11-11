@@ -94,6 +94,9 @@ class Certificate(db.Model):
     pubkey_fp = db.Column(db.String(64), index=True)
     revoked_at = db.Column(db.DateTime)
     revocation_reason = db.Column(db.String(40))
+    # CAs only: days each CRL is valid; None uses the global "crl_days" setting. An offline root needs
+    # a long one, because its CRL can only be re-signed while its key is imported.
+    crl_days = db.Column(db.Integer)
     created_at = db.Column(db.DateTime, default=utcnow, nullable=False)
     key_id = db.Column(db.Integer, db.ForeignKey("keys.id"))
     issuer_id = db.Column(db.Integer, db.ForeignKey("certificates.id"))
@@ -291,6 +294,7 @@ def upgrade_schema():
     _add_column("audit_log", "username", "VARCHAR(80)")
     _add_column("certificates", "pubkey_fp", "VARCHAR(64)")
     _add_column("csrs", "pubkey_fp", "VARCHAR(64)")
+    _add_column("certificates", "crl_days", "INTEGER")
     # 0.9.1 kept the time display per user; it is now the global "time_display" setting.
     if "time_display" in {row[1] for row in db.session.execute(db.text("PRAGMA table_info(users)"))}:
         db.session.execute(db.text("ALTER TABLE users DROP COLUMN time_display"))

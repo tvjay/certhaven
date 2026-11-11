@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.11.0 — 2026-11-11
+
+- **Keep a root CA's key offline.** On a CA's page, **Private key → Take the key offline** downloads the key and
+  certificate as a password-protected `.p12` file, then removes the key from certhaven after you confirm with
+  your password. The CA's CRL is re-signed just before, so it stays valid for its full lifetime. While the key
+  is offline the CA signs nothing; importing the file under **Import** attaches the key again and re-signs the
+  CRL straight away. See "Keep the root key offline" in the README.
+- **CRL validity per CA.** A CA's page has **New CRLs valid for (days)**, from 8 to 365; empty uses the default
+  from Settings. An offline root needs a long one, such as 365 days.
+- The dashboard and email alerts flag an offline CA 30 days before its CRL expires, so there is time to fetch
+  the key; CAs whose key is in certhaven are still flagged 7 days ahead.
+
 ## 0.10.3 — 2026-11-09
 
 - Safety copies no longer pile up: the nightly backup also removes copies taken before an upgrade

@@ -1,3 +1,13 @@
+certhaven (0.11.0-1) trixie; urgency=medium
+
+  * A CA's private key can be taken offline: download it as an encrypted
+    PKCS#12 file, then remove it from certhaven. Importing the file brings
+    it back and re-signs the CA's CRL.
+  * Each CA can have its own CRL validity.
+  * Offline CAs are flagged 30 days before their CRL expires.
+
+ -- tvjay <11197859+tvjay@users.noreply.github.com>  Wed, 11 Nov 2026 01:28:35 -0500
+
 certhaven (0.10.3-1) trixie; urgency=medium
 
   * Nightly backups also remove pre-upgrade copies older than 180 days, and

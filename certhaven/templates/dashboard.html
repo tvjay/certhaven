@@ -36,7 +36,8 @@
   {% if crls_due %}
     <ul>{% for ca in crls_due %}
       <li><a href="{{ url_for('certs.detail', id=ca.id) }}">{{ ca.name }}</a> —
-        {% if ca.latest_crl %}next update {{ ca.latest_crl.next_update|dt }}{% else %}no CRL yet{% endif %}</li>
+        {% if ca.latest_crl %}next update {{ ca.latest_crl.next_update|dt }}{% else %}no CRL yet{% endif %}
+        {% if not ca.key_id %}<span class="muted">· key offline: import it under Import to re-sign</span>{% endif %}</li>
     {% endfor %}</ul>
     {% if can('operator') %}<form method="post" action="{{ url_for('main.regenerate_crls') }}">{{ csrf_field() }}<button class="btn">Re-sign all CRLs</button></form>{% endif %}
   {% else %}

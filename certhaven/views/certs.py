@@ -1,15 +1,16 @@
+import time
 from collections import defaultdict
 
 from cryptography.hazmat.primitives import serialization
-from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
+from flask import Blueprint, abort, flash, redirect, render_template, request, session, url_for
 
-from .. import services
+from .. import accounts, services
 from ..crypto import bundle
 from ..crypto import certs as certlib
 from ..crypto import crl as crllib
 from ..crypto import keys as keylib
 from ..models import Certificate, Key, Template, db, utcnow
-from ..security import has_role, require_role
+from ..security import MIN_PASSWORD, current_user, has_role, require_role
 from . import download, safe_filename, subject_from_form, subject_values
 
 bp = Blueprint("certs", __name__)
@@ -150,7 +151,10 @@ def detail(id):
     row = db.get_or_404(Certificate, id)
     return render_template("cert_detail.html", row=row, info=certlib.details(row.x509),
                            chain=services.chain(row), reasons=crllib.REASON_LABELS,
-                           crl_url=services.crl_url(row.id), aia_url=services.aia_url(row.id))
+                           crl_url=services.crl_url(row.id), aia_url=services.aia_url(row.id),
+                           crl_days=services.crl_days_for(row) if row.is_ca else None,
+                           crl_days_range=(services.CRL_DAYS_MIN, services.CRL_DAYS_MAX),
+                           offline_downloaded=row.is_ca and _offline_download(row) is not None)
 
 
 @bp.post("/certs/<int:id>/revoke")
@@ -275,3 +279,92 @@ def download_crl(id):
         abort(404)
     return download(row.latest_crl.pem, f"{safe_filename(row.name, f'ca-{row.id}')}.crl.pem",
                     "application/x-pem-file")
+
+
+# --- per-CA CRL lifetime and offline keys (admins only: not listed in ENDPOINT_ROLES) ---------------
+
+@bp.post("/certs/<int:id>/crl-days")
+def crl_days(id):
+    row = db.get_or_404(Certificate, id)
+    if not row.is_ca:
+        abort(404)
+    value = request.form.get("crl_days", "").strip()
+    try:
+        days = int(value) if value else None
+        if days is not None and not services.CRL_DAYS_MIN <= days <= services.CRL_DAYS_MAX:
+            raise ValueError
+    except ValueError:
+        flash(f"CRL validity must be {services.CRL_DAYS_MIN} to {services.CRL_DAYS_MAX} days, "
+              "or empty to use the default from Settings.", "error")
+        return redirect(url_for(".detail", id=id) + "#crl")
+    row.crl_days = days
+    services.audit("crl_days", f"{row.name}: {days or 'default'}")
+    db.session.commit()
+    flash(f"New CRLs from {row.name} are valid for {services.crl_days_for(row)} days. "
+          "The current one is unchanged until it is re-signed.", "success")
+    return redirect(url_for(".detail", id=id) + "#crl")
+
+
+# Taking a key offline is two steps: download an encrypted copy, then remove the key. The second
+# step only works within this window after the first, in the same session, for the same key.
+OFFLINE_CONFIRM_SECONDS = 3600
+
+
+def _offline_download(row):
+    record = session.get("offline_export", {}).get(str(row.id))
+    if row.key and record and record[0] == row.key.fingerprint and time.time() - record[1] < OFFLINE_CONFIRM_SECONDS:
+        return record
+    return None
+
+
+@bp.post("/certs/<int:id>/offline/export")
+def offline_export(id):
+    row = db.get_or_404(Certificate, id)
+    if not row.is_ca or row.key is None:
+        abort(404)
+    password = request.form.get("password", "")
+    if password != request.form.get("confirm", ""):
+        flash("The passwords do not match.", "error")
+    elif len(password) < MIN_PASSWORD:
+        flash(f"Use a password of at least {MIN_PASSWORD} characters: this file is the only copy of the key.",
+              "error")
+    else:
+        data = bundle.pkcs12_bytes(row.name, services.load_private_key(row.key), row.x509,
+                                   [c.x509 for c in services.chain(row)], password)
+        exports = session.get("offline_export", {})
+        exports[str(row.id)] = [row.key.fingerprint, time.time()]
+        session["offline_export"] = exports
+        services.audit("export_offline_key", f"{row.name} serial {row.serial} (encrypted PKCS#12)")
+        db.session.commit()
+        return download(data, f"{safe_filename(row.name, f'ca-{row.id}')}-offline-key.p12", "application/x-pkcs12")
+    return redirect(url_for(".detail", id=id) + "#offline")
+
+
+@bp.post("/certs/<int:id>/offline/remove")
+def offline_remove(id):
+    row = db.get_or_404(Certificate, id)
+    if not row.is_ca or row.key is None:
+        abort(404)
+    try:
+        if not _offline_download(row):
+            raise ValueError("Download the offline copy first (step 1), then remove the key within an hour.")
+        if not request.form.get("stored"):
+            raise ValueError("Confirm that the file and its password are stored safely.")
+        ok, _ = accounts.checked_verify(current_user(), request.form.get("password", ""),
+                                        request.remote_addr or "?")
+        if not ok:
+            raise ValueError("Your password is incorrect.")
+        fingerprint = row.key.fingerprint
+        crl = services.take_key_offline(row)
+        services.audit("key_offline", f"{row.name} key {fingerprint}; CRL #{crl.number} valid until "
+                       f"{crl.next_update:%Y-%m-%d}")
+        db.session.commit()
+    except (ValueError, accounts.CheckRefused) as exc:
+        db.session.rollback()
+        flash(f"The key was not removed: {exc}", "error")
+        return redirect(url_for(".detail", id=id) + "#offline")
+    session.get("offline_export", {}).pop(str(row.id), None)
+    session.modified = True
+    flash(f"The private key for {row.name} is offline. Its CRL is valid until {crl.next_update:%Y-%m-%d}; "
+          "import the key file under Import before then to re-sign it.", "success")
+    return redirect(url_for(".detail", id=id))

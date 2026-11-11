@@ -65,7 +65,7 @@
 </section>
 
 {% if row.is_ca %}
-<section class="card">
+<section class="card" id="crl">
   <h2>Revocation list</h2>
   {% set crl = row.latest_crl %}
   {% if crl %}
@@ -77,9 +77,72 @@
   {% if row.key_id and can('operator') %}
     <form method="post" action="{{ url_for('certs.regenerate_crl', id=row.id) }}">{{ csrf_field() }}<button class="btn">Re-sign CRL now</button></form>
   {% endif %}
+  {% if can('admin') %}
+    <form method="post" action="{{ url_for('certs.crl_days', id=row.id) }}" class="inline">
+      {{ csrf_field() }}
+      <label>New CRLs valid for (days)
+        <input name="crl_days" type="number" min="{{ crl_days_range[0] }}" max="{{ crl_days_range[1] }}"
+               value="{{ row.crl_days or '' }}" placeholder="{{ crl_days }}"></label>
+      <button class="btn">Save</button>
+    </form>
+    <p class="small muted">Empty uses the default from Settings. A CA whose key is kept offline needs a long one,
+      up to {{ crl_days_range[1] }} days.</p>
+  {% else %}
+    <p class="small muted">New CRLs are valid for {{ crl_days }} days.</p>
+  {% endif %}
   <p class="small">Public URLs (no login needed):<br>
     <a class="mono" href="{{ url_for('public.crl', ca_id=row.id) }}">{{ crl_url or url_for('public.crl', ca_id=row.id) }}</a><br>
     <a class="mono" href="{{ url_for('public.ca_cert', ca_id=row.id) }}">{{ aia_url or url_for('public.ca_cert', ca_id=row.id) }}</a></p>
+</section>
+
+<section class="card" id="offline">
+  <h2>Private key</h2>
+  {% if row.key_id %}
+    <p>certhaven holds this CA's key (encrypted), so it can sign certificates and CRLs while unlocked.</p>
+    {% if can('admin') %}
+    <details {{ 'open' if offline_downloaded }}>
+      <summary>Take the key offline</summary>
+      <p class="small">The key is removed from certhaven and kept only in a file you store offline, for example on two
+        USB drives. The certificate stays, so devices can still download it. While the key is offline this CA cannot
+        sign anything, and its CRL can only be renewed by importing the file. Usually only a root CA is kept offline;
+        issue certificates from an intermediate.</p>
+      <ol class="small">
+        <li>Set <a href="#crl">New CRLs valid for</a> to a long period, such as 365 days.</li>
+        <li>Download the encrypted copy below and store it, with its password, somewhere safe.</li>
+        <li>Remove the key. This re-signs the CRL first, valid for {{ crl_days }} days.</li>
+      </ol>
+      <form method="post" action="{{ url_for('certs.offline_export', id=row.id) }}">
+        {{ csrf_field() }}
+        <div class="grid">
+          <label>File password <input type="password" name="password" minlength="12" autocomplete="new-password" required></label>
+          <label>Repeat it <input type="password" name="confirm" minlength="12" autocomplete="new-password" required></label>
+        </div>
+        <button class="btn">1. Download offline copy (.p12)</button>
+      </form>
+      {% if offline_downloaded %}
+      <form method="post" action="{{ url_for('certs.offline_remove', id=row.id) }}"
+            data-confirm="Remove the private key for {{ row.name }} from certhaven? Only your offline copy will remain.">
+        {{ csrf_field() }}
+        <label class="check"><input type="checkbox" name="stored" value="1" required> I stored the file and its
+          password safely, and could find both again</label>
+        <label>Your certhaven password <input type="password" name="password" autocomplete="current-password" required></label>
+        <button class="btn danger">2. Remove the key from certhaven</button>
+      </form>
+      {% else %}
+      <p class="small muted">Step 2 appears here after you download the copy.</p>
+      {% endif %}
+    </details>
+    {% endif %}
+  {% elif row.latest_crl %}
+    <p><span class="badge pending">offline</span> The private key is not in certhaven, so this CA cannot sign
+      certificates or CRLs.</p>
+    <p class="small">Its CRL is valid until <strong>{{ row.latest_crl.next_update|d }}</strong>. Before then, import
+      the key file under <a href="{{ url_for('importer.index') }}">Import</a> (with its password); certhaven
+      re-signs the CRL as soon as the key is back. You can take it offline again afterwards.</p>
+  {% else %}
+    <p class="muted">certhaven does not have this CA's private key. Import it under
+      <a href="{{ url_for('importer.index') }}">Import</a> to issue certificates and CRLs from this CA.</p>
+  {% endif %}
 </section>
 {% endif %}
 
