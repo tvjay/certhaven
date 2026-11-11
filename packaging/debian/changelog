@@ -1,3 +1,10 @@
+certhaven (0.11.2-1) trixie; urgency=medium
+
+  * Certificate pages show the PEM text under Details instead of at the
+    bottom of the page.
+
+ -- tvjay <11197859+tvjay@users.noreply.github.com>  Wed, 11 Nov 2026 01:42:37 -0500
+
 certhaven (0.11.1-1) trixie; urgency=medium
 
   * Taking a key offline: the page reloads after the offline copy is

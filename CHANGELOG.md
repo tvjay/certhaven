@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.11.2 — 2026-11-11
+
+- Certificate pages show the **PEM** text box directly under **Details**, instead of at the very bottom of the
+  page. On a CA's page, **Issued by this CA** now follows it.
+
 ## 0.11.1 — 2026-11-11
 
 - **Taking a key offline:** step 2 now appears on its own after you download the offline copy. A download leaves

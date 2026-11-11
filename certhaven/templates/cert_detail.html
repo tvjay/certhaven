@@ -19,6 +19,7 @@
 {% endif %}
 
 <div class="cols">
+<div>
 <section class="card">
   <h2>Details</h2>
   <dl>
@@ -51,6 +52,14 @@
     </ol>
   {% endif %}
 </section>
+
+<section class="card">
+  <details>
+    <summary>PEM</summary>
+    <pre>{{ row.pem }}</pre>
+  </details>
+</section>
+</div>
 
 <div>
 <section class="card">
@@ -182,9 +191,4 @@
   {{ cert_table(row.sorted_children, show_issuer=false) }}
 </section>
 {% endif %}
-
-<details>
-  <summary>PEM</summary>
-  <pre>{{ row.pem }}</pre>
-</details>
 {% endblock %}
