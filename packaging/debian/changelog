@@ -1,3 +1,10 @@
+certhaven (0.11.6-1) trixie; urgency=medium
+
+  * CERTHAVEN_MIN_PASSWORD lowers the minimum password length (to 4 at
+    least) for a throwaway demo instance; the default stays 12.
+
+ -- tvjay <11197859+tvjay@users.noreply.github.com>  Wed, 11 Nov 2026 20:22:51 -0500
+
 certhaven (0.11.5-1) trixie; urgency=medium
 
   * CA pages list "Issued by this CA" before the deleted certificates.

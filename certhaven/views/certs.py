@@ -10,7 +10,7 @@ from ..crypto import certs as certlib
 from ..crypto import crl as crllib
 from ..crypto import keys as keylib
 from ..models import Certificate, Key, Template, db, utcnow
-from ..security import MIN_PASSWORD, current_user, has_role, require_role
+from ..security import current_user, has_role, require_role
 from . import download, safe_filename, subject_from_form, subject_values
 
 bp = Blueprint("certs", __name__)
@@ -313,6 +313,9 @@ def crl_days(id):
 # Taking a key offline is two steps: download an encrypted copy, then remove the key. The second
 # step only works within this window after the first, in the same session, for the same key.
 OFFLINE_CONFIRM_SECONDS = 3600
+# The offline file is the only copy of a CA key, so its password is never shorter than this, even on an
+# instance that lowers the account password minimum.
+OFFLINE_FILE_MIN_PASSWORD = 12
 
 
 def _offline_download(row):
@@ -330,8 +333,8 @@ def offline_export(id):
     password = request.form.get("password", "")
     if password != request.form.get("confirm", ""):
         flash("The passwords do not match.", "error")
-    elif len(password) < MIN_PASSWORD:
-        flash(f"Use a password of at least {MIN_PASSWORD} characters: this file is the only copy of the key.",
+    elif len(password) < OFFLINE_FILE_MIN_PASSWORD:
+        flash(f"Use a password of at least {OFFLINE_FILE_MIN_PASSWORD} characters: this file is the only copy of the key.",
               "error")
     else:
         data = bundle.pkcs12_bytes(row.name, services.load_private_key(row.key), row.x509,

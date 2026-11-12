@@ -1,4 +1,5 @@
 import hmac
+import os
 import secrets
 import threading
 import time
@@ -12,7 +13,16 @@ from .models import User, db, get_setting
 
 vault = Vault()
 
-MIN_PASSWORD = 12
+def _min_password():
+    """Minimum length of account passwords: 12, unless CERTHAVEN_MIN_PASSWORD sets another value (at least 4).
+    Meant for a throwaway demo instance; a real CA should keep the default."""
+    try:
+        return max(4, int(os.environ.get("CERTHAVEN_MIN_PASSWORD", "12")))
+    except ValueError:
+        return 12
+
+
+MIN_PASSWORD = _min_password()
 SESSION_MAX_AGE = 12 * 3600   # log in again after 12 hours, however active
 
 PUBLIC_ENDPOINTS = {"static", "auth.login", "auth.setup", "public.crl", "public.ca_cert"}

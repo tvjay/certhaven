@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.11.6 — 2026-11-11
+
+- **Demo instances can use short passwords.** Setting `CERTHAVEN_MIN_PASSWORD` in a service's environment lowers
+  the minimum password length for that instance (to no fewer than 4 characters). It is meant for a separate copy
+  used to show certhaven off; a real CA should keep the default of 12. The password for an offline CA key file
+  always needs at least 12 characters, whatever this is set to.
+
 ## 0.11.5 — 2026-11-11
 
 - **A clearer Revocation list card on CA pages.** It now shows a short summary in the same layout as Details
