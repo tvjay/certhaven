@@ -1,3 +1,10 @@
+certhaven (0.11.7-1) trixie; urgency=medium
+
+  * No greyed-out "US" example in the Country box of the certificate and
+    CSR forms; it looked like a filled-in value.
+
+ -- tvjay <11197859+tvjay@users.noreply.github.com>  Mon, 16 Nov 2026 21:31:39 -0500
+
 certhaven (0.11.6-1) trixie; urgency=medium
 
   * CERTHAVEN_MIN_PASSWORD lowers the minimum password length (to 4 at

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.11.7 — 2026-11-16
+
+- The **Country** box on the new certificate and CSR forms no longer shows a greyed-out `US` as an example. It
+  looked like a filled-in value; the box is now empty until you type a country code.
+
 ## 0.11.6 — 2026-11-11
 
 - **Demo instances can use short passwords.** Setting `CERTHAVEN_MIN_PASSWORD` in a service's environment lowers

@@ -7,7 +7,7 @@
     {% for key, oid, label in fields %}
       <label>{{ label }}
         <input name="subj_{{ key }}" value="{{ values.get('subj_' ~ key, '') }}"
-               {% if key == 'C' %}maxlength="2" placeholder="US"{% endif %}
+               {% if key == 'C' %}maxlength="2"{% endif %}
                {% if key == 'CN' %}placeholder="www.example.internal"{% endif %}>
       </label>
     {% endfor %}
